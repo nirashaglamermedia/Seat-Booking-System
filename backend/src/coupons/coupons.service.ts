@@ -59,13 +59,16 @@ async createCoupon(user_id: number) {
     const couponCode =
         'CINE' + Math.random().toString(36).substring(2, 8).toUpperCase();
 
+        const expiryDate = new Date();
+        expiryDate.setDate(expiryDate.getDate() + 30);
+
     try {
         const result = await this.databaseService.query(
             `INSERT INTO coupons
-                (user_id, coupon_code, discount_percentage, status)
-             VALUES ($1, $2, 10, 'Available')
+                (user_id, coupon_code, discount_percentage, status,expires_at)
+             VALUES ($1, $2, 10, 'Available',$3)
              RETURNING *`,
-            [user_id, couponCode],
+            [user_id, couponCode, expiryDate],
         );
 
         return result.rows[0];

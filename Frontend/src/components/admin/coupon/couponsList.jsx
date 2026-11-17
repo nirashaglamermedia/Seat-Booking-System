@@ -204,6 +204,7 @@ const handleDelete = async (coupon_id) => {
                   <th>Discount Percentage(%)</th>
                   <th>Status</th>
                   <th>Start Date</th>
+                  <th>Expire Date</th>
                   <th className="text-center">Action</th>
                 </tr>
               </thead>
@@ -276,7 +277,11 @@ const handleDelete = async (coupon_id) => {
                     ? new Date(coupon.created_at).toLocaleDateString()
                     : '-'}
                     </td>
-
+                        <td>
+                      {coupon.expire_at
+                    ? new Date(coupon.expires_at).toLocaleDateString()
+                    : '-'}
+                    </td>
                     
 
                     <td>

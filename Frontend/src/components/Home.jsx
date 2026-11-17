@@ -136,15 +136,53 @@ function Home() {
               </div>
             </div>
 
+            
             <div className="col-md-4">
-              <div className="p-4">
+              <div className="p-4 h-100">
                 <i className="bi bi-grid-3x3-gap text-danger fs-1"></i>
-                <h5 className="fw-bold mt-3">Seat Selection</h5>
+
+                <h5 className="fw-bold mt-3">Seat Selection & Discounts</h5>
+
                 <p className="text-secondary">
-                  Select your preferred seats before booking.
+                  Select your preferred seats and enjoy special discounts.
                 </p>
+
+                <div className="mt-3">
+
+                  <div className="d-flex align-items-start mb-3">
+                    <i className="bi bi-ticket-perforated-fill text-danger me-2 fs-5"></i>
+                    <div>
+                      <h6 className="fw-bold mb-1">3rd Seat Discount</h6>
+                      <small className="text-secondary">
+                        Buy 2 seats and get 50% OFF on your 3rd seat.
+                      </small>
+                    </div>
+                  </div>
+
+                  <div className="d-flex align-items-start mb-3">
+                    <i className="bi bi-ticket-detailed-fill text-danger me-2 fs-5"></i>
+                    <div>
+                      <h6 className="fw-bold mb-1">Coupon Code Discount</h6>
+                      <small className="text-secondary">
+                        Apply a valid coupon code and enjoy 10% OFF.
+                      </small>
+                    </div>
+                  </div>
+
+                  <div className="d-flex align-items-start">
+                    <i className="bi bi-star-fill text-danger me-2 fs-5"></i>
+                    <div>
+                      <h6 className="fw-bold mb-1">Cinema Club Membership</h6>
+                      <small className="text-secondary">
+                        Cinema Club members receive an exclusive 5% OFF.
+                      </small>
+                    </div>
+                  </div>
+
+                </div>
               </div>
             </div>
+
 
             <div className="col-md-4">
               <div className="p-4">
