@@ -67,6 +67,14 @@ function CouponCard() {
     );
   }
 
+  const expiryDate = coupon?.expires_at
+    ? new Date(coupon.expires_at).toLocaleDateString('en-GB', {
+        day: '2-digit',
+        month: 'long',
+        year: 'numeric',
+      })
+    : 'Not available';
+
   return (
     <div className="container py-5">
 
@@ -134,6 +142,19 @@ function CouponCard() {
           }}
         >
           {coupon.coupon_code}
+        </div>
+        <div
+          style={{
+            marginTop: '20px',
+            padding: '12px',
+            background: '#ffffff',
+            color: '#172554',
+            borderRadius: '8px',
+            fontSize: '16px',
+            fontWeight: 'bold',
+          }}
+        >
+          Valid Until: {expiryDate}
         </div>
 
         <p style={{ marginTop: '25px', fontSize: '13px' }}>

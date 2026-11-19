@@ -595,14 +595,18 @@ export class BookingsService {
                         );
                     }
 
-                    if (
-                        coupon.expires_at &&
-                        new Date(coupon.expires_at).getTime() <= Date.now()
-                    ) {
-                        throw new BadRequestException(
-                            'This coupon has expired',
-                        );
-                    }
+                    const expiryResult = await client.query(
+                      `SELECT expires_at <= CURRENT_TIMESTAMP AS is_expired
+                      FROM coupons
+                      WHERE coupon_id = $1`,
+                      [coupon.coupon_id],
+                  );
+
+                  if (expiryResult.rows[0].is_expired) {
+                      throw new BadRequestException(
+                          'This coupon has expired',
+                      );
+                  } 
 
                     couponDiscount = Math.round(
                         (
@@ -698,21 +702,33 @@ export class BookingsService {
                             .toUpperCase();
 
                     const newCouponResult = await client.query(
-                        `INSERT INTO coupons
-                            (user_id, coupon_code, discount_percentage, status)
-                        VALUES ($1, $2, 10, 'Available')
-                        ON CONFLICT (user_id) DO NOTHING
-                        RETURNING coupon_code`,
-                        [
-                            Number(user_id),
-                            newCouponCode,
-                        ],
-                    );
+                      `INSERT INTO coupons
+                          (
+                              user_id,
+                              coupon_code,
+                              discount_percentage,
+                              status,
+                              expires_at
+                          )
+                      VALUES (
+                          $1,
+                          $2,
+                          10,
+                          'Available',
+                          CURRENT_TIMESTAMP + INTERVAL '30 days'
+                      )
+                      ON CONFLICT (user_id) DO NOTHING
+                      RETURNING coupon_code, expires_at`,
+                      [
+                          Number(user_id),
+                          newCouponCode,
+                      ],
+                  );
 
-                    if (newCouponResult.rows.length > 0) {
-                        generatedCouponCode =
-                            newCouponResult.rows[0].coupon_code;
-                    }
+                  if (newCouponResult.rows.length > 0) {
+                      generatedCouponCode =
+                          newCouponResult.rows[0].coupon_code;
+                  }
                 }
 
                 

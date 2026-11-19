@@ -157,48 +157,25 @@ function Booking() {
     0,
     totalPrice - couponDiscount
   );
-  async function downloadCouponPNG(code, percentage, customerName) {
+  async function downloadCouponPNG() {
+  if (!couponCardRef.current || !generatedCoupon) {
+    return;
+  }
+
   try {
-    setGeneratedCoupon({
-      code: code,
-      percentage: percentage,
-      name: customerName,
-    });
-
-    
-    await new Promise((resolve) => setTimeout(resolve, 500));
-
-    const card = couponCardRef.current;
-
-    if (!card) {
-      throw new Error('Coupon card not found.');
-    }
-
-    const imageUrl = await toPng(card, {
+    const imageUrl = await toPng(couponCardRef.current, {
       cacheBust: true,
       pixelRatio: 2,
       backgroundColor: '#172554',
-      width: 600,
-      height: 450,
-      style: {
-        position: 'static',
-        left: '0',
-        top: '0',
-        transform: 'none',
-      },
     });
 
     const link = document.createElement('a');
-    link.download = `Cinema-Coupon-${code}.png`;
+    link.download = `Cinema-Coupon-${generatedCoupon.code}.png`;
     link.href = imageUrl;
-
-    document.body.appendChild(link);
     link.click();
-    document.body.removeChild(link);
-
   } catch (error) {
     console.error('Coupon PNG Error:', error);
-    throw error;
+    showMessage('Download Failed', 'Unable to download coupon. Please try again.');
   }
 }
   async function handleConfirm() {
@@ -279,30 +256,30 @@ function Booking() {
       const token = localStorage.getItem('access_token');
 
       const response = await fetch("http://localhost:3001/bookings", {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json",
-  },
-  body: JSON.stringify({
-    user_id: Number(user.user_id),
-    showtime_id: Number(showtimeId),
-    visit_date: visitDate,
-    seats: seatsToBook,
-    ...(appliedCoupon ? { coupon_code: appliedCoupon } : {}),
-  }),
-});
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          user_id: Number(user.user_id),
+          showtime_id: Number(showtimeId),
+          visit_date: visitDate,
+          seats: seatsToBook,
+          ...(appliedCoupon ? { coupon_code: appliedCoupon } : {}),
+        }),
+      });
 
-const result = await response.json();
+      const result = await response.json();
 
-console.log("Booking API Response:", result);
+      console.log("Booking API Response:", result);
 
-if (!response.ok) {
-  throw new Error(
-    Array.isArray(result.message)
-      ? result.message.join(", ")
-      : result.message || "Booking failed"
-  );
-}
+      if (!response.ok) {
+        throw new Error(
+          Array.isArray(result.message)
+            ? result.message.join(", ")
+            : result.message || "Booking failed"
+        );
+      }
 
       localStorage.removeItem('selectedSeats');
       localStorage.removeItem('totalPrice');
@@ -316,29 +293,26 @@ if (!response.ok) {
       localStorage.removeItem('start_time');
 
       
-      if (result.generated_coupon_code) {
-      try {
-        await downloadCouponPNG(
-          result.generated_coupon_code,
-          result.generated_coupon_percentage,
-          user.name || 'Valued Customer'
+      
+        if (result.generated_coupon_code) {
+        setGeneratedCoupon({
+          code: result.generated_coupon_code,
+          percentage: result.generated_coupon_percentage || 10,
+          name: user.name || 'Valued Customer',
+          expiresAt:
+            result.generated_coupon_expires_at ||
+            result.coupon_expires_at ||
+            result.expires_at ||
+            null,
+        });
+
+        setPopupTitle('Booking Successful!');
+        setPopupMessage(
+          `Your booking ID is ${result.booking_id}. Congratulations! You have received a 10% reward coupon.`
         );
+        setShowPopup(true);
 
-        showMessage(
-          'Booking Successful',
-          'Your booking is successful. Your 10% coupon PNG has been downloaded.'
-        );
-
-      } catch (downloadError) {
-        console.error('Coupon PNG Error:', downloadError);
-
-        showMessage(
-          'Booking Successful',
-          `Your booking ID is ${result.booking_id}. Coupon code: ${result.generated_coupon_code}. PNG download failed.`
-        );
-      }
-
-    } else {
+      } else {
       showMessage(
         'Booking Successful',
         `Your booking ID is ${result.booking_id}. Final Amount: Rs. ${Number(result.final_total ?? result.total ?? finalTotal).toFixed(2)}`
@@ -423,15 +397,25 @@ if (!response.ok) {
         <p>Your exclusive coupon code</p>
 
         <h1 style={{
-          background: 'white',
-          color: '#172554',
-          padding: '15px',
-          borderRadius: '10px',
-          letterSpacing: '3px',
-        }}>
-          {generatedCoupon?.code || 'COUPON'}
-        </h1>
-
+            background: 'white',
+            color: '#172554',
+            padding: '15px',
+            borderRadius: '10px',
+            letterSpacing: '3px',
+          }}>
+            {generatedCoupon?.code || 'COUPON'}
+          </h1>
+          <p style={{ marginTop: '20px', fontSize: '18px' }}>
+            Valid Until: {
+              generatedCoupon?.expiresAt
+                ? new Date(generatedCoupon.expiresAt).toLocaleDateString('en-GB', {
+                    day: '2-digit',
+                    month: 'long',
+                    year: 'numeric',
+                  })
+                : 'Not available'
+            }
+          </p>
         <p>* One-time use only</p>
 
         <p>Thank you for choosing our Cinema Booking System!</p>
@@ -690,45 +674,149 @@ if (!response.ok) {
         </div>
       </div>
       {showPopup && (
-        <div
-          className="modal d-block"
-          tabIndex="-1"
-          style={{ backgroundColor: "rgba(0, 0, 0, 0.5)" }}
-        >
-          <div className="modal-dialog modal-dialog-centered">
-            <div className="modal-content">
+  <div
+    className="modal d-block"
+    tabIndex="-1"
+    style={{
+      backgroundColor: 'rgba(0, 0, 0, 0.7)',
+      zIndex: 10000,
+    }}
+  >
+    <div className="modal-dialog modal-dialog-centered">
+      <div className="modal-content">
 
-              <div className="modal-header">
-                <h5 className="modal-title">{popupTitle}</h5>
+        <div className="modal-header bg-dark text-white">
+          <h5 className="modal-title">{popupTitle}</h5>
 
-                <button
-                  type="button"
-                  className="btn-close"
-                  onClick={() => setShowPopup(false)}
-                ></button>
-              </div>
-
-              <div className="modal-body">
-                <p className="mb-0">{popupMessage}</p>
-              </div>
-
-              <div className="modal-footer">
-                <button
-                  type="button"
-                  className="btn btn-primary"
-                  onClick={() => {
-                    setShowPopup(false);
-                    navigate('/my-booking');
-                  }}
-                >
-                  OK
-                </button>
-              </div>
-
-            </div>
-          </div>
+          <button
+            type="button"
+            className="btn-close btn-close-white"
+            onClick={() => {
+              setShowPopup(false);
+              navigate('/my-booking');
+            }}
+          ></button>
         </div>
-      )}
+
+        <div className="modal-body text-center p-4">
+
+          <div className="text-success mb-3">
+            <i className="bi bi-check-circle-fill fs-1"></i>
+          </div>
+
+          <p>{popupMessage}</p>
+
+          {generatedCoupon && (
+            <div
+              className="p-3 mt-3"
+              style={{
+                background: '#172554',
+                color: 'white',
+                border: '4px solid #fbbf24',
+                borderRadius: '15px',
+              }}
+            >
+              <h4 style={{ letterSpacing: '2px' }}>
+                CINEMA REWARDS
+              </h4>
+
+              <p>SPECIAL OFFER FOR YOU</p>
+
+              <h1
+                style={{
+                  color: '#facc15',
+                  fontSize: '55px',
+                  fontWeight: 'bold',
+                }}
+              >
+                {generatedCoupon.percentage}% OFF
+              </h1>
+
+              <h5>YOUR NEXT BOOKING</h5>
+
+              <hr />
+
+              <p>
+                Congratulations, {generatedCoupon.name}!
+              </p>
+
+              <p>Your exclusive coupon code</p>
+
+              <div
+                className="p-3 rounded"
+                style={{
+                  background: 'white',
+                  color: '#172554',
+                  fontSize: '25px',
+                  fontWeight: 'bold',
+                  letterSpacing: '2px',
+                }}
+              >
+                {generatedCoupon.code}
+              </div>
+
+              <p className="mt-3 mb-2">
+                <strong>Valid Until:</strong>{' '}
+                {generatedCoupon.expiresAt
+                  ? new Date(generatedCoupon.expiresAt).toLocaleDateString(
+                      'en-GB',
+                      {
+                        day: '2-digit',
+                        month: 'long',
+                        year: 'numeric',
+                      }
+                    )
+                  : 'Not available'}
+              </p>
+
+              <small>* One-time use only</small>
+            </div>
+          )}
+
+        </div>
+
+        <div className="modal-footer justify-content-center">
+
+          {generatedCoupon ? (
+            <>
+              <button
+                type="button"
+                className="btn btn-success"
+                onClick={downloadCouponPNG}
+              >
+                <i className="bi bi-download me-2"></i>
+                Download Coupon PNG
+              </button>
+
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => {
+                  setShowPopup(false);
+                  navigate('/my-booking');
+                }}
+              >
+                Continue
+              </button>
+            </>
+          ) : (
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={() => {
+                setShowPopup(false);
+                navigate('/my-booking');
+              }}
+            >
+              OK
+            </button>
+          )}
+
+        </div>
+      </div>
+    </div>
+  </div>
+)}
     </div>
   );
 }
