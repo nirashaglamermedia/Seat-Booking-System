@@ -3,10 +3,12 @@ import { Module } from '@nestjs/common';
 import { SeatsController } from './seats.controller';
 import { SeatsService } from './seats.service';
 import { SeatGateway } from '../bookings/seat.gateway';
-import { DatabaseModule } from '../database/database.module';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { Seat } from '../entities/seats.entity';
+
 
 @Module({
-  imports: [DatabaseModule],
+  imports: [TypeOrmModule.forFeature([Seat])],
   controllers: [SeatsController],
   providers: [SeatsService, SeatGateway],
   exports: [SeatGateway],

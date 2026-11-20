@@ -14,4 +14,12 @@ export class HallsService {
     async findOneHall(hall_id:number){
         return this.hallRepository.findBy({hall_id:hall_id});
     }
+    async createHall(data: Partial<Hall>){
+        const hall = this.hallRepository.create(data);
+        return this.hallRepository.save(hall);
+    }
+
+    async removeHall(hall_id: number) {
+        return this.hallRepository.delete(hall_id);
+    }
 }
