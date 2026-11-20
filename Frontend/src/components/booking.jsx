@@ -1,9 +1,91 @@
-
 import React, { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toPng } from 'html-to-image';
 import { useGetMembershipsQuery } from '../features/membershipApi';
 
+const styles = `
+.bk { background:#f2f2f2; min-height:100vh; padding-bottom:3rem; }
+
+/* top bar */
+.bk-nav {
+  background:#333545; color:#fff; padding:14px 32px;
+  display:flex; align-items:center; justify-content:space-between;
+  position:sticky; top:0; z-index:10;
+}
+.bk-logo { font-size:1.5rem; font-weight:800; letter-spacing:-0.5px; }
+.bk-logo span { color:#f84464; }
+
+/* cards */
+.bk-card {
+  background:#fff; border-radius:14px; padding:24px;
+  box-shadow:0 4px 16px rgba(0,0,0,.08); margin-bottom:20px;
+}
+.bk-heading { font-weight:700; margin-bottom:14px; }
+.bk-heading i { color:#f84464; margin-right:8px; }
+
+/* movie banner */
+.bk-banner {
+  background:linear-gradient(120deg,#1f2030,#3a1c3f 60%,#f84464 150%);
+  color:#fff; border-radius:14px; padding:22px 24px; margin-bottom:20px;
+  display:flex; justify-content:space-between; align-items:center; gap:12px;
+  flex-wrap:wrap;
+}
+.bk-banner h4 { font-weight:800; margin:0 0 4px; }
+.bk-banner small { opacity:.8; }
+.bk-pill {
+  background:rgba(255,255,255,.18); border-radius:20px;
+  padding:6px 14px; font-size:.9rem;
+}
+
+/* ticket info rows */
+.bk-row { display:flex; justify-content:space-between; margin-bottom:8px; }
+.bk-row span:first-child { color:#777; }
+
+/* seat chips */
+.bk-chip {
+  display:inline-block; background:#fff0f3; color:#f84464; font-weight:700;
+  border-radius:6px; padding:4px 12px; margin:0 8px 8px 0;
+}
+
+/* coupon */
+.bk-coupon .form-control:focus {
+  border-color:#f84464; box-shadow:0 0 0 3px rgba(248,68,100,.2);
+}
+.bk-apply {
+  background:#333545; color:#fff; border:0; font-weight:600;
+  padding:0 20px; border-radius:0 8px 8px 0;
+}
+.bk-apply:hover { background:#1f2030; color:#fff; }
+.bk-coupon .form-control { border-radius:8px 0 0 8px; }
+
+/* price summary */
+.bk-total {
+  display:flex; justify-content:space-between; align-items:center;
+  border-top:2px dashed #ddd; padding-top:14px; margin-top:12px;
+}
+.bk-total h3 { color:#f84464; font-weight:800; margin:0; }
+
+/* buttons */
+.bk-confirm {
+  background:#f84464; color:#fff; border:0; width:100%;
+  padding:.85rem; border-radius:10px; font-weight:700; font-size:1.05rem;
+  transition:background .2s;
+}
+.bk-confirm:hover:not(:disabled) { background:#d9304f; color:#fff; }
+.bk-confirm:disabled { opacity:.6; }
+.bk-cancel {
+  background:#fff; color:#555; border:1.5px solid #ccc; width:100%;
+  padding:.7rem; border-radius:10px; font-weight:600; margin-top:12px;
+}
+.bk-cancel:hover:not(:disabled) { background:#f2f2f2; }
+
+.bk-confirm:focus-visible, .bk-cancel:focus-visible, .bk-apply:focus-visible {
+  outline:3px solid #f84464; outline-offset:2px;
+}
+
+.bk .modal-content { border:0; border-radius:14px; overflow:hidden; }
+.bk .modal-header { background:#333545; color:#fff; }
+`;
 
 function Booking() {
   const navigate = useNavigate();
@@ -47,7 +129,7 @@ function Booking() {
     setShowPopup(true);
   }
 
-   async function handleApplyCoupon() {
+  async function handleApplyCoupon() {
     setCouponMessage('');
     setCouponDiscount(0);
     setAppliedCoupon('');
@@ -105,12 +187,10 @@ function Booking() {
         throw new Error('Invalid coupon code.');
       }
 
-      
       if (result.status !== 'Available') {
         throw new Error('This coupon has already been used or is unavailable.');
       }
 
-      
       if (
         result.expires_at &&
         new Date(result.expires_at).getTime() <= Date.now()
@@ -124,7 +204,6 @@ function Booking() {
         throw new Error('Invalid coupon discount.');
       }
 
-      
       const discount = Math.round(
         (totalPrice * percentage / 100) * 100
       ) / 100;
@@ -145,7 +224,6 @@ function Booking() {
     }
   }
 
-    
   function handleRemoveCoupon() {
     setAppliedCoupon('');
     setCouponDiscount(0);
@@ -158,26 +236,26 @@ function Booking() {
     totalPrice - couponDiscount
   );
   async function downloadCouponPNG() {
-  if (!couponCardRef.current || !generatedCoupon) {
-    return;
-  }
+    if (!couponCardRef.current || !generatedCoupon) {
+      return;
+    }
 
-  try {
-    const imageUrl = await toPng(couponCardRef.current, {
-      cacheBust: true,
-      pixelRatio: 2,
-      backgroundColor: '#172554',
-    });
+    try {
+      const imageUrl = await toPng(couponCardRef.current, {
+        cacheBust: true,
+        pixelRatio: 2,
+        backgroundColor: '#172554',
+      });
 
-    const link = document.createElement('a');
-    link.download = `Cinema-Coupon-${generatedCoupon.code}.png`;
-    link.href = imageUrl;
-    link.click();
-  } catch (error) {
-    console.error('Coupon PNG Error:', error);
-    showMessage('Download Failed', 'Unable to download coupon. Please try again.');
+      const link = document.createElement('a');
+      link.download = `Cinema-Coupon-${generatedCoupon.code}.png`;
+      link.href = imageUrl;
+      link.click();
+    } catch (error) {
+      console.error('Coupon PNG Error:', error);
+      showMessage('Download Failed', 'Unable to download coupon. Please try again.');
+    }
   }
-}
   async function handleConfirm() {
     setErrorMessage('');
 
@@ -210,7 +288,7 @@ function Booking() {
         'Session Invalid',
         'Your session is invalid. Please login again.'
       )
-      
+
       navigate('/login');
       return;
     }
@@ -220,7 +298,7 @@ function Booking() {
         'User details not found.',
         ' Please login again.'
       )
-      
+
       navigate('/login');
       return;
     }
@@ -292,9 +370,7 @@ function Booking() {
       localStorage.removeItem('visit_date');
       localStorage.removeItem('start_time');
 
-      
-      
-        if (result.generated_coupon_code) {
+      if (result.generated_coupon_code) {
         setGeneratedCoupon({
           code: result.generated_coupon_code,
           percentage: result.generated_coupon_percentage || 10,
@@ -313,11 +389,11 @@ function Booking() {
         setShowPopup(true);
 
       } else {
-      showMessage(
-        'Booking Successful',
-        `Your booking ID is ${result.booking_id}. Final Amount: Rs. ${Number(result.final_total ?? result.total ?? finalTotal).toFixed(2)}`
-      );
-    }
+        showMessage(
+          'Booking Successful',
+          `Your booking ID is ${result.booking_id}. Final Amount: Rs. ${Number(result.final_total ?? result.total ?? finalTotal).toFixed(2)}`
+        );
+      }
     } catch (error) {
       setErrorMessage(
         error.message || 'Something went wrong. Please try again.'
@@ -350,9 +426,10 @@ function Booking() {
   const maxSeats = isActiveMember ? 10 : 5;
 
   return (
-    <div className="container-fluid bg-black min-vh-100 py-5">
-      
+    <div className="bk">
+      <style>{styles}</style>
 
+      {/* Hidden coupon card used for PNG download (unchanged) */}
       <div
         ref={couponCardRef}
         style={{
@@ -397,426 +474,394 @@ function Booking() {
         <p>Your exclusive coupon code</p>
 
         <h1 style={{
-            background: 'white',
-            color: '#172554',
-            padding: '15px',
-            borderRadius: '10px',
-            letterSpacing: '3px',
-          }}>
-            {generatedCoupon?.code || 'COUPON'}
-          </h1>
-          <p style={{ marginTop: '20px', fontSize: '18px' }}>
-            Valid Until: {
-              generatedCoupon?.expiresAt
-                ? new Date(generatedCoupon.expiresAt).toLocaleDateString('en-GB', {
-                    day: '2-digit',
-                    month: 'long',
-                    year: 'numeric',
-                  })
-                : 'Not available'
-            }
-          </p>
+          background: 'white',
+          color: '#172554',
+          padding: '15px',
+          borderRadius: '10px',
+          letterSpacing: '3px',
+        }}>
+          {generatedCoupon?.code || 'COUPON'}
+        </h1>
+        <p style={{ marginTop: '20px', fontSize: '18px' }}>
+          Valid Until: {
+            generatedCoupon?.expiresAt
+              ? new Date(generatedCoupon.expiresAt).toLocaleDateString('en-GB', {
+                  day: '2-digit',
+                  month: 'long',
+                  year: 'numeric',
+                })
+              : 'Not available'
+          }
+        </p>
         <p>* One-time use only</p>
 
         <p>Thank you for choosing our Cinema Booking System!</p>
       </div>
-      <div className="row justify-content-center">
-        <div className="col-12 col-md-9 col-lg-6 col-xl-5">
 
-          <div className="card border-0 shadow">
-            <div className="card-header bg-dark text-white p-4">
-              <div className="d-flex align-items-center justify-content-between">
-                <div>
-                  <h4 className="fw-bold mb-1">
-                    Review Your Booking
-                  </h4>
+      {/* TOP BAR */}
+      <div className="bk-nav">
+        <div className="bk-logo">
+          cinema<span>seat</span>
+        </div>
+        <span className="small opacity-75">
+          <i className="bi bi-shield-check me-2"></i>
+          Secure checkout
+        </span>
+      </div>
 
-                  <small className="text-white-50">
-                    Your booking details
-                  </small>
-                </div>
+      <div className="container mt-4" style={{ maxWidth: '640px' }}>
 
-                <span className="badge bg-light text-dark">
-                  {selectedSeat.length} seat
-                  {selectedSeat.length !== 1 ? 's' : ''}
+        {/* BANNER */}
+        <div className="bk-banner">
+          <div>
+            <h4>Review Your Booking</h4>
+            <small>Your booking details</small>
+          </div>
+
+          <span className="bk-pill">
+            {selectedSeat.length} seat
+            {selectedSeat.length !== 1 ? 's' : ''}
+          </span>
+        </div>
+
+        {/* MOVIE DETAILS */}
+        <div className="bk-card">
+          <div className="bk-heading">
+            <i className="bi bi-film"></i>
+            Movie Details
+          </div>
+
+          <div className="bk-row">
+            <span>Movie</span>
+            <strong>{movieName || "Not available"}</strong>
+          </div>
+
+          <div className="bk-row">
+            <span>Visit Date</span>
+            <strong>{visitDate || "Not available"}</strong>
+          </div>
+
+          <div className="bk-row mb-0">
+            <span>Showtime</span>
+            <strong>{startTime || "Not available"}</strong>
+          </div>
+        </div>
+
+        {errorMessage && (
+          <div className="alert alert-danger" role="alert">
+            <strong>Booking failed:</strong>{' '}
+            {errorMessage}
+          </div>
+        )}
+
+        {/* SEATS */}
+        <div className="bk-card">
+          <div className="bk-heading">
+            <i className="bi bi-grid-3x3-gap"></i>
+            Selected Seats
+          </div>
+
+          {selectedSeat.length > 0 ? (
+            <div>
+              {selectedSeat.map((seat, index) => (
+                <span key={`${seat}-${index}`} className="bk-chip">
+                  {seat}
                 </span>
-              </div>
+              ))}
             </div>
+          ) : (
+            <div className="alert alert-warning mb-0">
+              No seats selected. Please select seats first.
+            </div>
+          )}
 
-            <div className="card-body p-4">
+          <div className="bk-row mt-3 mb-0">
+            <span>Total seats</span>
+            <strong>{selectedSeat.length}</strong>
+          </div>
+        </div>
 
-              {/* Movie Details */}
-              <div className="border rounded-3 p-3 mb-4">
+        {/* COUPON */}
+        <div className="bk-card bk-coupon">
+          <div className="bk-heading">
+            <i className="bi bi-ticket-perforated"></i>
+            Have a Coupon?
+          </div>
 
-                <h6 className="fw-bold mb-3">
-                  <i className="bi bi-film me-2"></i>
-                  Movie Details
-                </h6>
+          {!appliedCoupon ? (
+            <>
+              <div className="input-group">
+                <input
+                  type="text"
+                  className="form-control"
+                  placeholder="Enter coupon code"
+                  value={couponCode}
+                  onChange={(e) => {
+                    setCouponCode(e.target.value);
+                    setCouponMessage('');
+                  }}
+                  disabled={couponLoading || loading}
+                />
 
-                <div className="d-flex justify-content-between mb-2">
-                  <span className="text-secondary">Movie</span>
-                  <strong>{movieName || "Not available"}</strong>
-                </div>
-
-                <div className="d-flex justify-content-between mb-2">
-                  <span className="text-secondary">Visit Date</span>
-                  <strong>{visitDate || "Not available"}</strong>
-                </div>
-
-                <div className="d-flex justify-content-between mb-2">
-                  <span className="text-secondary">Showtime</span>
-                  <strong>{startTime || "Not available"}</strong>
-                </div>
-
+                <button
+                  type="button"
+                  className="bk-apply"
+                  onClick={handleApplyCoupon}
+                  disabled={couponLoading || loading}
+                >
+                  {couponLoading ? 'Checking...' : 'Apply'}
+                </button>
               </div>
 
-              {errorMessage && (
-                <div
-                  className="alert alert-danger"
-                  role="alert"
-                >
-                  <strong>Booking failed:</strong>{' '}
-                  {errorMessage}
+              {couponMessage && (
+                <div className="mt-2 small text-danger">
+                  {couponMessage}
                 </div>
               )}
-
-              <div className="mb-4">
-                <h6 className="fw-bold mb-3">
-                  Selected Seats
-                </h6>
-
-                {selectedSeat.length > 0 ? (
-                  <div className="d-flex flex-wrap gap-2">
-                    {selectedSeat.map((seat, index) => (
-                      <span
-                        key={`${seat}-${index}`}
-                        className="badge border border-primary text-primary bg-light p-2 fs-6"
-                      >
-                        {seat}
-                      </span>
-                    ))}
+            </>
+          ) : (
+            <>
+              <div className="alert alert-success mb-2">
+                <div className="d-flex justify-content-between align-items-center">
+                  <div>
+                    <strong>{appliedCoupon}</strong>
+                    <div className="small">
+                      Coupon successfully applied!
+                    </div>
                   </div>
-                ) : (
-                  <div className="alert alert-warning mb-0">
-                    No seats selected. Please select seats first.
+
+                  <span className="badge bg-success">
+                    10% OFF
+                  </span>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                className="btn btn-sm btn-outline-danger"
+                onClick={handleRemoveCoupon}
+                disabled={loading}
+              >
+                Remove Coupon
+              </button>
+            </>
+          )}
+
+          {!appliedCoupon && couponMessage && (
+            <div className="small text-success mt-2">
+              {couponMessage}
+            </div>
+          )}
+        </div>
+
+        {/* PRICE SUMMARY */}
+        <div className="bk-card">
+          <div className="bk-heading">
+            <i className="bi bi-receipt"></i>
+            Price Details
+          </div>
+
+          <div className="bk-row">
+            <span>Subtotal</span>
+            <span>Rs. {subtotal.toFixed(2)}</span>
+          </div>
+
+          <div className="bk-row">
+            <span className="text-success">
+              Seat & Membership Discount
+            </span>
+
+            <span className="text-success">
+              - Rs. {totalDiscount.toFixed(2)}
+            </span>
+          </div>
+
+          {isActiveMember && (
+            <div className="text-success small mb-2">
+              <i className="bi bi-star-fill me-2"></i>
+              Cinema Club Member – 5% discount included
+            </div>
+          )}
+
+          <div className="bk-total">
+            <span className="fw-bold">Final Amount</span>
+            <h3>Rs. {finalTotal.toFixed(2)}</h3>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          className="bk-confirm"
+          onClick={handleConfirm}
+          disabled={loading || selectedSeat.length === 0}
+        >
+          {loading ? (
+            <>
+              <span
+                className="spinner-border spinner-border-sm me-2"
+                aria-hidden="true"
+              />
+              Confirming Booking...
+            </>
+          ) : (
+            'Confirm Booking'
+          )}
+        </button>
+
+        <button
+          type="button"
+          className="bk-cancel"
+          onClick={handleCancel}
+          disabled={loading}
+        >
+          Cancel and Return
+        </button>
+      </div>
+
+      {showPopup && (
+        <div
+          className="modal d-block"
+          tabIndex="-1"
+          style={{
+            backgroundColor: 'rgba(0, 0, 0, 0.7)',
+            zIndex: 10000,
+          }}
+        >
+          <div className="modal-dialog modal-dialog-centered">
+            <div className="modal-content">
+
+              <div className="modal-header">
+                <h5 className="modal-title">{popupTitle}</h5>
+
+                <button
+                  type="button"
+                  className="btn-close btn-close-white"
+                  onClick={() => {
+                    setShowPopup(false);
+                    navigate('/my-booking');
+                  }}
+                ></button>
+              </div>
+
+              <div className="modal-body text-center p-4">
+
+                <div className="text-success mb-3">
+                  <i className="bi bi-check-circle-fill fs-1"></i>
+                </div>
+
+                <p>{popupMessage}</p>
+
+                {generatedCoupon && (
+                  <div
+                    className="p-3 mt-3"
+                    style={{
+                      background: '#172554',
+                      color: 'white',
+                      border: '4px solid #fbbf24',
+                      borderRadius: '15px',
+                    }}
+                  >
+                    <h4 style={{ letterSpacing: '2px' }}>
+                      CINEMA REWARDS
+                    </h4>
+
+                    <p>SPECIAL OFFER FOR YOU</p>
+
+                    <h1
+                      style={{
+                        color: '#facc15',
+                        fontSize: '55px',
+                        fontWeight: 'bold',
+                      }}
+                    >
+                      {generatedCoupon.percentage}% OFF
+                    </h1>
+
+                    <h5>YOUR NEXT BOOKING</h5>
+
+                    <hr />
+
+                    <p>
+                      Congratulations, {generatedCoupon.name}!
+                    </p>
+
+                    <p>Your exclusive coupon code</p>
+
+                    <div
+                      className="p-3 rounded"
+                      style={{
+                        background: 'white',
+                        color: '#172554',
+                        fontSize: '25px',
+                        fontWeight: 'bold',
+                        letterSpacing: '2px',
+                      }}
+                    >
+                      {generatedCoupon.code}
+                    </div>
+
+                    <p className="mt-3 mb-2">
+                      <strong>Valid Until:</strong>{' '}
+                      {generatedCoupon.expiresAt
+                        ? new Date(generatedCoupon.expiresAt).toLocaleDateString(
+                            'en-GB',
+                            {
+                              day: '2-digit',
+                              month: 'long',
+                              year: 'numeric',
+                            }
+                          )
+                        : 'Not available'}
+                    </p>
+
+                    <small>* One-time use only</small>
                   </div>
                 )}
+
               </div>
 
-              <hr />
+              <div className="modal-footer justify-content-center">
 
-              <div className="d-flex justify-content-between align-items-center mb-3">
-                <span className="text-secondary">
-                  Total seats
-                </span>
-
-                <span className="fw-semibold">
-                  {selectedSeat.length}
-                </span>
-              </div>
-                <div className="border rounded-3 p-3 mb-4">
-
-                <h6 className="fw-bold mb-3">
-                  <i className="bi bi-ticket-perforated me-2"></i>
-                  Have a Coupon?
-                </h6>
-
-                {!appliedCoupon ? (
-
+                {generatedCoupon ? (
                   <>
-                    <div className="input-group">
-
-                      <input
-                        type="text"
-                        className="form-control"
-                        placeholder="Enter coupon code"
-                        value={couponCode}
-                        onChange={(e) => {
-                          setCouponCode(e.target.value);
-                          setCouponMessage('');
-                        }}
-                        disabled={couponLoading || loading}
-                      />
-
-                      <button
-                        type="button"
-                        className="btn btn-dark"
-                        onClick={handleApplyCoupon}
-                        disabled={couponLoading || loading}
-                      >
-                        {couponLoading ? 'Checking...' : 'Apply'}
-                      </button>
-
-                    </div>
-
-                    {couponMessage && (
-                      <div className="mt-2 small text-danger">
-                        {couponMessage}
-                      </div>
-                    )}
-                  </>
-
-                ) : (
-
-                  <>
-                    <div className="alert alert-success mb-2">
-
-                      <div className="d-flex justify-content-between align-items-center">
-
-                        <div>
-                          <strong>{appliedCoupon}</strong>
-                          <div className="small">
-                            Coupon successfully applied!
-                          </div>
-                        </div>
-
-                        <span className="badge bg-success">
-                          10% OFF
-                        </span>
-
-                      </div>
-
-                    </div>
+                    <button
+                      type="button"
+                      className="btn btn-success"
+                      onClick={downloadCouponPNG}
+                    >
+                      <i className="bi bi-download me-2"></i>
+                      Download Coupon PNG
+                    </button>
 
                     <button
                       type="button"
-                      className="btn btn-sm btn-outline-danger"
-                      onClick={handleRemoveCoupon}
-                      disabled={loading}
+                      className="btn btn-secondary"
+                      onClick={() => {
+                        setShowPopup(false);
+                        navigate('/my-booking');
+                      }}
                     >
-                      Remove Coupon
+                      Continue
                     </button>
                   </>
-
-                )}
-
-                {!appliedCoupon && couponMessage && (
-                  <div className="small text-success mt-2">
-                    {couponMessage}
-                  </div>
-                )}
-
-              </div>
-              
-
-              <div className="rounded-3 bg-light p-3 mb-4">
-
-                  <div className="d-flex justify-content-between mb-2">
-                    <span>Subtotal</span>
-                    <span>Rs. {subtotal.toFixed(2)}</span>
-                  </div>
-
-                  <div className="d-flex justify-content-between mb-2">
-                    <span className="text-success">
-                      Seat & Membership Discount
-                    </span>
-
-                    <span className="text-success">
-                      - Rs. {totalDiscount.toFixed(2)}
-                    </span>
-                  </div>
-
-                  {isActiveMember && (
-                    <div className="text-success small mb-2">
-                      <i className="bi bi-star-fill me-2"></i>
-                      Cinema Club Member – 5% discount included
-                    </div>
-                  )}
-                  
-
-                  <hr />
-
-                  <div className="d-flex justify-content-between align-items-center">
-                    <span className="fw-bold">
-                      Final Amount
-                    </span>
-
-                    <h3 className="fw-bold text-success mb-0">
-                      Rs. {finalTotal.toFixed(2)}
-                    </h3>
-                  </div>
-
-                </div>
-
-              <button
-                type="button"
-                className="btn btn-success btn-lg w-100 mb-3"
-                onClick={handleConfirm}
-                disabled={loading || selectedSeat.length === 0}
-              >
-                {loading ? (
-                  <>
-                    <span
-                      className="spinner-border spinner-border-sm me-2"
-                      aria-hidden="true"
-                    />
-                    Confirming Booking...
-                  </>
                 ) : (
-                  'Confirm Booking'
+                  <button
+                    type="button"
+                    className="bk-confirm w-auto px-4"
+                    onClick={() => {
+                      setShowPopup(false);
+                      navigate('/my-booking');
+                    }}
+                  >
+                    OK
+                  </button>
                 )}
-              </button>
 
-              <button
-                type="button"
-                className="btn btn-outline-secondary w-100"
-                onClick={handleCancel}
-                disabled={loading}
-              >
-                Cancel and Return
-              </button>
-
-              
-            </div>
-          </div>
-
-          
-        </div>
-      </div>
-      {showPopup && (
-  <div
-    className="modal d-block"
-    tabIndex="-1"
-    style={{
-      backgroundColor: 'rgba(0, 0, 0, 0.7)',
-      zIndex: 10000,
-    }}
-  >
-    <div className="modal-dialog modal-dialog-centered">
-      <div className="modal-content">
-
-        <div className="modal-header bg-dark text-white">
-          <h5 className="modal-title">{popupTitle}</h5>
-
-          <button
-            type="button"
-            className="btn-close btn-close-white"
-            onClick={() => {
-              setShowPopup(false);
-              navigate('/my-booking');
-            }}
-          ></button>
-        </div>
-
-        <div className="modal-body text-center p-4">
-
-          <div className="text-success mb-3">
-            <i className="bi bi-check-circle-fill fs-1"></i>
-          </div>
-
-          <p>{popupMessage}</p>
-
-          {generatedCoupon && (
-            <div
-              className="p-3 mt-3"
-              style={{
-                background: '#172554',
-                color: 'white',
-                border: '4px solid #fbbf24',
-                borderRadius: '15px',
-              }}
-            >
-              <h4 style={{ letterSpacing: '2px' }}>
-                CINEMA REWARDS
-              </h4>
-
-              <p>SPECIAL OFFER FOR YOU</p>
-
-              <h1
-                style={{
-                  color: '#facc15',
-                  fontSize: '55px',
-                  fontWeight: 'bold',
-                }}
-              >
-                {generatedCoupon.percentage}% OFF
-              </h1>
-
-              <h5>YOUR NEXT BOOKING</h5>
-
-              <hr />
-
-              <p>
-                Congratulations, {generatedCoupon.name}!
-              </p>
-
-              <p>Your exclusive coupon code</p>
-
-              <div
-                className="p-3 rounded"
-                style={{
-                  background: 'white',
-                  color: '#172554',
-                  fontSize: '25px',
-                  fontWeight: 'bold',
-                  letterSpacing: '2px',
-                }}
-              >
-                {generatedCoupon.code}
               </div>
-
-              <p className="mt-3 mb-2">
-                <strong>Valid Until:</strong>{' '}
-                {generatedCoupon.expiresAt
-                  ? new Date(generatedCoupon.expiresAt).toLocaleDateString(
-                      'en-GB',
-                      {
-                        day: '2-digit',
-                        month: 'long',
-                        year: 'numeric',
-                      }
-                    )
-                  : 'Not available'}
-              </p>
-
-              <small>* One-time use only</small>
             </div>
-          )}
-
+          </div>
         </div>
-
-        <div className="modal-footer justify-content-center">
-
-          {generatedCoupon ? (
-            <>
-              <button
-                type="button"
-                className="btn btn-success"
-                onClick={downloadCouponPNG}
-              >
-                <i className="bi bi-download me-2"></i>
-                Download Coupon PNG
-              </button>
-
-              <button
-                type="button"
-                className="btn btn-secondary"
-                onClick={() => {
-                  setShowPopup(false);
-                  navigate('/my-booking');
-                }}
-              >
-                Continue
-              </button>
-            </>
-          ) : (
-            <button
-              type="button"
-              className="btn btn-primary"
-              onClick={() => {
-                setShowPopup(false);
-                navigate('/my-booking');
-              }}
-            >
-              OK
-            </button>
-          )}
-
-        </div>
-      </div>
-    </div>
-  </div>
-)}
+      )}
     </div>
   );
 }

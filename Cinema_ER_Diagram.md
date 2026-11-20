@@ -60,6 +60,8 @@ erDiagram
         timestamp booking_date
         date visit_date
         numeric total
+        numeric subtotal
+        numeric discount
         varchar status
         varchar arrival_status
         timestamp arrived_at
