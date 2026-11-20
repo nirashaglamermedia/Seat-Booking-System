@@ -6,6 +6,7 @@ import { authApi } from '../features/authApi';
 import { couponApi } from '../features/couponApi';
 import { membershipApi } from '../features/membershipApi';
 import { movieApi } from '../features/movieApi';
+import { hallApi } from '../features/hallapi';
 
 export const store = configureStore({
   reducer: {
@@ -16,13 +17,14 @@ export const store = configureStore({
     [couponApi.reducerPath]:couponApi.reducer,
     [membershipApi.reducerPath]: membershipApi.reducer,
     [movieApi.reducerPath]: movieApi.reducer,
+    [hallApi.reducerPath]:hallApi.reducer,
   },
 
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware().concat(
       userApi.middleware,seatApi.middleware,bookingApi.middleware,
       authApi.middleware,couponApi.middleware,membershipApi.middleware,
-      movieApi.middleware
+      movieApi.middleware, hallApi.middleware,
     ),
     
 });

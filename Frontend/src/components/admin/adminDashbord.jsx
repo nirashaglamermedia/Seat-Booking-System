@@ -42,6 +42,22 @@ function AdminDashboard() {
         <div className="col-md-4">
           <div className="card shadow-sm">
             <div className="card-body">
+              <h5 className="card-title">Manage Halls</h5>
+              <p className="card-text">
+                 Add and delete cinema halls.
+              </p>
+              <button
+                className="btn btn-primary"
+                onClick={() => window.location.href = '/movie-hall'}
+              >
+                View Halls
+              </button>
+            </div>
+          </div>
+        </div>
+        <div className="col-md-4">
+          <div className="card shadow-sm">
+            <div className="card-body">
               <h5 className="card-title">Manage Seats</h5>
               <p className="card-text">
                 Add, edit and delete cinema seats.

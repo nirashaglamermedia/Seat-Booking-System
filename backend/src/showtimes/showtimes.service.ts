@@ -20,7 +20,7 @@ export class ShowtimesService {
     private readonly bookingRepository: Repository<Booking>,
   ) {}
 
-  // Check whether customers have active bookings
+  
   private async hasActiveBookings(showtime_id: number): Promise<boolean> {
     const count = await this.bookingRepository
       .createQueryBuilder('booking')

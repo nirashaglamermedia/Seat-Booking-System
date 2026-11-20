@@ -36,6 +36,8 @@ import MoviePage from "./components/moviePage";
 import ViewTicket from "./components/viewTicket";
 import ModifiedTicket from "./components/modifiedTicket";
 import AddMovie from "./components/admin/movie/addMovie";
+import HallList from "./components/admin/halls/hallList";
+import AddHall from "./components/admin/halls/addHall";
 
 
 
@@ -80,6 +82,8 @@ const App = () => {
           <Route path="/view/:booking_id" element={<ViewTicket/>}/>
           <Route path="/modified/:booking_id" element={<ModifiedTicket/>}/>
           <Route path="/add-movie" element={<AddMovie/>}/>
+          <Route path="/movie-hall" element={<HallList/>}/>
+          <Route path="/add-hall" element={<AddHall/>}/>
         </Route>
       </Routes>
     </div>
