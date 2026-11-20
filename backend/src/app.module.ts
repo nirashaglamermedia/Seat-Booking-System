@@ -15,6 +15,8 @@ import { MembershipsModule } from './memberships/memberships.module';
 import { MoviesModule } from './movies/movies.module';
 import { ShowtimesModule } from './showtimes/showtimes.module';
 
+import { HallsModule } from './halls/halls.module';
+
 @Module({
   imports: [
     DatabaseModule,
@@ -27,6 +29,7 @@ import { ShowtimesModule } from './showtimes/showtimes.module';
     MembershipsModule,
     MoviesModule,
     ShowtimesModule,
+    HallsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -7,9 +7,9 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
 
-import { Movie } from './movies.entity';
-import { Booking } from './../bookings/booking.entity';
-import { Showtime } from '../showtimes/showtime.entity';
+import { Movie } from '../entities/movies.entity';
+import { Booking } from '../entities/booking.entity';
+import { Showtime } from '../entities/showtime.entity';
 
 @Injectable()
 export class MoviesService {

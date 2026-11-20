@@ -1,8 +1,8 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
-import { Showtime } from './showtime.entity';
-import { Booking } from '../bookings/booking.entity';
+import { Showtime } from '../entities/showtime.entity';
+import { Booking } from '../entities/booking.entity';
 
 import { ShowtimesService } from './showtimes.service';
 import { ShowtimesController } from './showtimes.controller';

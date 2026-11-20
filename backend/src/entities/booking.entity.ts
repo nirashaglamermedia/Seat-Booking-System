@@ -8,8 +8,8 @@ import {
   OneToMany,
 } from 'typeorm';
 
-import { Showtime } from './../showtimes/showtime.entity';
-import { BookingSeat } from './../booking_seat/booking-seat.entity';
+import { Showtime } from './showtime.entity';
+import { BookingSeat } from './booking-seat.entity';
 
 @Entity('bookings')
 export class Booking {

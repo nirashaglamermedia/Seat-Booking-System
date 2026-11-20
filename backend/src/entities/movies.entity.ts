@@ -6,7 +6,7 @@ import {
   OneToMany,
 } from 'typeorm';
 
-import { Showtime } from './../showtimes/showtime.entity';
+import { Showtime } from './showtime.entity';
 
 @Entity('movies')
 export class Movie {

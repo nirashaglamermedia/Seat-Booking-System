@@ -6,7 +6,7 @@ import {
   JoinColumn,
 } from 'typeorm';
 
-import { Movie } from '../movies/movies.entity';
+import { Movie } from '../entities/movies.entity';
 
 @Entity('showtimes')
 export class Showtime {
