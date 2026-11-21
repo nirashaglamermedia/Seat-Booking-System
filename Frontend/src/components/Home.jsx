@@ -11,6 +11,9 @@ function Home() {
     isError,
   } = useGetMoviesQuery();
 
+  const activeMovies = movies.filter(
+    (movie) => movie.status === "Active"
+  );
   if (isLoading) {
     return (
       <div className="text-center py-5">
@@ -164,7 +167,7 @@ function Home() {
         {/* MOVIES */}
         <h2 className="bms-title">Now Showing</h2>
         <div className="row g-4">
-          {movies.map((movie) => (
+          {activeMovies.map((movie) => (
             <div className="col-6 col-md-4 col-lg-3" key={movie.movie_id}>
               <div
                 className="bms-card"

@@ -145,13 +145,35 @@ function MoviePage() {
               </span>
 
               <p className="mp-desc">{movie.description}</p>
+               <div className="mt-3">
+                  <h6 className="fw-bold">
+                    
+                     Movie Hall
+                  </h6>
+
+                  <div className="d-flex gap-2 flex-wrap">
+                    {[...new Set(
+                      movie.showtimes
+                        ?.map((showtime) => showtime.hall_name)
+                        .filter(Boolean)
+                    )].map((hallName) => (
+                      <span
+                        key={hallName}
+                        className="mp-chip"
+                      >
+                        <i className="bi bi-building me-2"></i>
+                        {hallName}
+                      </span>
+                    ))}
+                  </div>
+                </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* BOOKING CARD */}
-      <div className="container pb-5">
+      
+      <div className="container pb-4">
         <div className="mp-book">
           <div className="mp-label">
             <i className="bi bi-calendar-event me-2 text-danger"></i>
@@ -178,35 +200,48 @@ function MoviePage() {
           </div>
 
           <div className="d-flex gap-2 flex-wrap">
-            {movie.show_time && (
-              <button
-                type="button"
-                className={`mp-pill ${selectedShowtime ? 'active' : ''}`}
-                onClick={() => setSelectedShowtime(movie)}
-              >
-                {movie.show_time}
-              </button>
+            {movie.showtimes?.length > 0 ? (
+              movie.showtimes.map((showtime) => (
+                <button
+                  key={showtime.showtime_id}
+                  type="button"
+                  className={`mp-pill ${
+                    selectedShowtime?.showtime_id === showtime.showtime_id
+                      ? 'active'
+                      : ''
+                  }`}
+                  onClick={() => setSelectedShowtime(showtime)}
+                >
+                  <span className="d-block">
+                    {showtime.start_time}
+                  </span>
+
+                  
+                </button>
+              ))
+            ) : (
+              <p className="text-muted">No showtimes available.</p>
             )}
           </div>
 
-          <div className="mt-4">
-            <button
-              className="mp-select"
-              onClick={() =>
-                navigate('/seat-selection', {
-                  state: {
-                    movie_id: movie.movie_id,
-                    movie_name: movie.movie_name,
-                    showtime_id: selectedShowtime.showtime_id,
-                    show_date: selectedDate,
-                    start_time: selectedShowtime.show_time
-                  }
-                })
-              }
-            >
-              Select
-            </button>
-          </div>
+          <button
+            className="mp-select mt-4 "
+            disabled={!selectedDate || !selectedShowtime}
+            onClick={() =>
+              navigate('/seat-selection', {
+                state: {
+                  movie_id: movie.movie_id,
+                  movie_name: movie.movie_name,
+                  showtime_id: selectedShowtime.showtime_id,
+                  show_date: selectedDate,
+                  start_time: selectedShowtime.start_time,
+                  hall_name: selectedShowtime.hall_name,
+                },
+              })
+            }
+          >
+            Select
+          </button>
         </div>
       </div>
     </div>

@@ -42,24 +42,50 @@ export class MoviesService {
   }
 
   
+  
   async findAllMovies() {
-    return this.movieRepository
+    const results = await this.movieRepository
       .createQueryBuilder('movie')
       .leftJoin('movie.showtimes', 'showtime')
       .select('movie.movie_id', 'movie_id')
       .addSelect('movie.movie_name', 'movie_name')
       .addSelect('movie.description', 'description')
       .addSelect('movie.duration_minutes', 'duration_minutes')
-      .addSelect('showtime.start_time', 'start_time')
-      .addSelect('showtime.showtime_id', 'showtime_id')
       .addSelect('movie.poster_url', 'poster_url')
       .addSelect('movie.status', 'status')
-      .where('movie.status = :status', { status: 'Active' })
+      .addSelect('showtime.showtime_id', 'showtime_id')
+      .addSelect('showtime.start_time', 'start_time')
+      .addSelect('showtime.end_time', 'end_time')
       .orderBy('movie.movie_id', 'ASC')
       .addOrderBy('showtime.start_time', 'ASC')
       .getRawMany();
-  }
 
+    const groupedMovies = new Map();
+
+    for (const row of results) {
+      if (!groupedMovies.has(row.movie_id)) {
+        groupedMovies.set(row.movie_id, {
+          movie_id: row.movie_id,
+          movie_name: row.movie_name,
+          description: row.description,
+          duration_minutes: row.duration_minutes,
+          poster_url: row.poster_url,
+          status: row.status,
+          showtimes: [],
+        });
+      }
+
+      if (row.showtime_id !== null) {
+        groupedMovies.get(row.movie_id).showtimes.push({
+          showtime_id: row.showtime_id,
+          start_time: row.start_time,
+          end_time: row.end_time,
+        });
+      }
+    }
+
+    return Array.from(groupedMovies.values());
+  }
   
   async findOneByMovie(movie_id: number) {
     const movie = await this.movieRepository
@@ -85,30 +111,64 @@ export class MoviesService {
   }
 
   // Find an active movie by name
-  async findMovieByName(movieName: string) {
-    const movie = await this.movieRepository
-      .createQueryBuilder('movie')
-      .leftJoin('movie.showtimes', 'showtime')
-      .select('movie.movie_id', 'movie_id')
-      .addSelect('movie.movie_name', 'movie_name')
-      .addSelect('movie.description', 'description')
-      .addSelect('movie.duration_minutes', 'duration_minutes')
-      .addSelect('showtime.showtime_id', 'showtime_id')
-      .addSelect('showtime.start_time', 'show_time')
-      .addSelect('showtime.end_time', 'end_time')
-      .addSelect('movie.poster_url', 'poster_url')
-      .addSelect('movie.status', 'status')
-      .where('movie.movie_name = :movieName', { movieName })
-      .andWhere('movie.status = :status', { status: 'Active' })
-      .orderBy('showtime.start_time', 'ASC')
-      .getRawOne();
+  // Find an active movie by name with all showtimes
 
-    if (!movie) {
-      throw new NotFoundException(`Movie ${movieName} not found`);
-    }
+async findMovieByName(movieName: string) {
+  const results = await this.movieRepository
+    .createQueryBuilder('movie')
+    .leftJoin('movie.showtimes', 'showtime')
 
-    return movie;
+    // Join halls table using hall_id
+    .leftJoin(
+      'halls',
+      'hall',
+      'hall.hall_id = showtime.hall_id',
+    )
+
+    .select('movie.movie_id', 'movie_id')
+    .addSelect('movie.movie_name', 'movie_name')
+    .addSelect('movie.description', 'description')
+    .addSelect('movie.duration_minutes', 'duration_minutes')
+    .addSelect('movie.poster_url', 'poster_url')
+    .addSelect('movie.status', 'status')
+
+    .addSelect('showtime.showtime_id', 'showtime_id')
+    .addSelect('showtime.start_time', 'start_time')
+    .addSelect('showtime.end_time', 'end_time')
+
+    .addSelect('hall.hall_name', 'hall_name')
+
+    .where('movie.movie_name = :movieName', { movieName })
+    .andWhere('movie.status = :status', { status: 'Active' })
+
+    .orderBy('showtime.start_time', 'ASC')
+    .getRawMany();
+
+  if (results.length === 0) {
+    throw new NotFoundException(
+      `Movie ${movieName} not found`,
+    );
   }
+
+  return {
+    movie_id: results[0].movie_id,
+    movie_name: results[0].movie_name,
+    description: results[0].description,
+    duration_minutes: results[0].duration_minutes,
+    poster_url: results[0].poster_url,
+    status: results[0].status,
+
+    showtimes: results
+      .filter((row) => row.showtime_id !== null)
+      .map((row) => ({
+        showtime_id: row.showtime_id,
+        start_time: row.start_time,
+        end_time: row.end_time,
+        hall_name: row.hall_name,
+      })),
+  };
+}
+
 
   // Create a movie
   async createMovie(movie: any) {

@@ -88,6 +88,12 @@ function ViewTicket() {
               {booking.start_time || '-'}
             </div>
           </div>
+          <div className="row mb-3">
+            <div className="col-5 text-muted">Hall Name</div>
+            <div className="col-7 fw-bold">
+              {booking.hall_name || '-'}
+            </div>
+          </div>
 
           <div className="row mb-3">
             <div className="col-5 text-muted">Seats</div>

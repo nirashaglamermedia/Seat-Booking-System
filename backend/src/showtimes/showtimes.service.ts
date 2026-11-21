@@ -9,6 +9,7 @@ import { Repository } from 'typeorm';
 
 import { Showtime } from '../entities/showtime.entity';
 import { Booking } from '../entities/booking.entity';
+import { Hall } from '../entities/halls.entity';
 
 @Injectable()
 export class ShowtimesService {
@@ -18,6 +19,8 @@ export class ShowtimesService {
 
     @InjectRepository(Booking)
     private readonly bookingRepository: Repository<Booking>,
+   @InjectRepository(Hall)
+    private readonly hallRepository: Repository<Hall>,
   ) {}
 
   
@@ -37,7 +40,30 @@ export class ShowtimesService {
     return count > 0;
   }
 
-  // Get all showtimes
+   private async validateHall(hall_id: number): Promise<Hall> {
+    if (!Number.isInteger(hall_id) || hall_id <= 0) {
+      throw new BadRequestException('Valid Hall ID is required');
+    }
+
+    const hall = await this.hallRepository.findOneBy({
+      hall_id,
+    });
+
+    if (!hall) {
+      throw new NotFoundException(
+        `Hall with ID ${hall_id} not found`,
+      );
+    }
+
+    if (hall.status !== 'Active') {
+      throw new BadRequestException(
+        'Cannot assign an inactive hall to a showtime',
+      );
+    }
+
+    return hall;
+  }
+
   async findAllShowTimes() {
     return this.showtimeRepository.find({
       order: {
@@ -61,18 +87,19 @@ export class ShowtimesService {
     return showtime;
   }
 
-  // Create showtime
+  
   async createShowtime(showtime: any) {
-    const { movie_id, start_time, end_time } = showtime;
+    const { movie_id,hall_id, start_time, end_time } = showtime;
 
-    if (!movie_id || !start_time || !end_time) {
+    if (!movie_id || !hall_id || !start_time || !end_time) {
       throw new BadRequestException(
-        'Movie ID, start time and end time are required',
+        'Movie ID, hall_id,start time and end time are required',
       );
     }
-
+    await this.validateHall(Number(hall_id));
     const newShowtime = this.showtimeRepository.create({
-      movie_id,
+      movie_id: Number(movie_id),
+      hall_id: Number(hall_id),
       start_time,
       end_time,
     });
@@ -89,7 +116,8 @@ export class ShowtimesService {
 
     const hasChanges =
       updateShowtime.start_time !== undefined ||
-      updateShowtime.end_time !== undefined;
+      updateShowtime.end_time !== undefined ||
+      updateShowtime.hall_id !== undefined;
 
     if (!hasChanges) {
       return showtime;
@@ -104,6 +132,13 @@ export class ShowtimesService {
       );
     }
 
+    if (updateShowtime.hall_id !== undefined) {
+      const hall_id = Number(updateShowtime.hall_id);
+
+      await this.validateHall(hall_id);
+
+      showtime.hall_id = hall_id;
+    }
     if (updateShowtime.start_time !== undefined) {
       showtime.start_time = updateShowtime.start_time;
     }

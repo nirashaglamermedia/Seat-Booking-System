@@ -16,6 +16,9 @@ export class Showtime {
   @Column()
   movie_id: number;
 
+  @Column({ type: 'integer' })
+  hall_id: number;
+
   @Column({ type: 'time' })
   start_time: string;
 

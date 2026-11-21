@@ -10,6 +10,9 @@ export class Seat {
   @PrimaryGeneratedColumn()
   seat_id: number;
 
+  @Column({ type: 'integer' })
+  hall_id: number;
+
   @Column({ type: 'varchar', length: 1 })
   row_name: string;
 

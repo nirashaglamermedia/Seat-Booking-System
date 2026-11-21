@@ -6,12 +6,14 @@ import { Booking } from '../entities/booking.entity';
 
 import { ShowtimesService } from './showtimes.service';
 import { ShowtimesController } from './showtimes.controller';
+import { Hall } from '../entities/halls.entity';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([
       Showtime,
       Booking,
+      Hall
     ]),
   ],
 

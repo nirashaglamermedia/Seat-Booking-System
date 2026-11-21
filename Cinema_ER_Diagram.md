@@ -1,28 +1,27 @@
 
-# Cinema Seat Booking System - ER Diagram
-
-```mermaid
 erDiagram
 
     USERS ||--o{ BOOKINGS : makes
-    USERS ||--o{ COUPONS : receives
-    USERS ||--o{ MEMBERSHIPS : owns
+    USERS ||--o| COUPONS : receives
+    USERS ||--o| MEMBERSHIPS : owns
 
     MOVIES ||--o{ SHOWTIMES : has
+    HALLS ||--o{ SEATS : contains
+    HALLS ||--o{ SHOWTIMES : hosts
 
     SHOWTIMES ||--o{ BOOKINGS : receives
 
-    BOOKINGS ||--o{ BOOKING_SEATS : contains
-    SEATS ||--o{ BOOKING_SEATS : assigned
+    BOOKINGS ||--|{ BOOKING_SEATS : contains
+    SEATS ||--o{ BOOKING_SEATS : assigned_to
 
-    BOOKINGS o|--o{ COUPONS : redeems
+    BOOKINGS ||--o| COUPONS : uses
 
     USERS {
         int user_id PK
         varchar name
-        varchar email
+        varchar email UK
         varchar password
-        int phone
+        varchar phone
         varchar role
     }
 
@@ -36,21 +35,32 @@ erDiagram
         timestamp created_at
     }
 
-    SHOWTIMES {
-        int showtime_id PK
-        int movie_id FK
-        time start_time
-        time end_time
+    HALLS {
+        int hall_id PK
+        varchar hall_name
+        int total_rows
+        int seats_per_row
         varchar status
         timestamp created_at
     }
 
     SEATS {
         int seat_id PK
+        int hall_id FK
         varchar row_name
         int seat_number
         numeric price
         varchar status
+    }
+
+    SHOWTIMES {
+        int showtime_id PK
+        int movie_id FK
+        int hall_id FK
+        time start_time
+        time end_time
+        varchar status
+        timestamp created_at
     }
 
     BOOKINGS {
@@ -60,8 +70,6 @@ erDiagram
         timestamp booking_date
         date visit_date
         numeric total
-        numeric subtotal
-        numeric discount
         varchar status
         varchar arrival_status
         timestamp arrived_at
@@ -78,12 +86,12 @@ erDiagram
     COUPONS {
         int coupon_id PK
         int user_id FK
-        varchar coupon_code
+        varchar coupon_code UK
         numeric discount_percentage
         varchar status
         timestamp created_at
         timestamp expires_at
-        int used_booking_id FK
+        int used_booking_id FK, UK
         timestamp used_at
     }
 
@@ -97,4 +105,3 @@ erDiagram
         date start_date
         date expiry_date
     }
-```

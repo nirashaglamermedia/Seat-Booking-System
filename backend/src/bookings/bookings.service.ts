@@ -20,6 +20,7 @@ export class BookingsService {
               b.booking_id,
               b.user_id,
               u.name AS customer_name,
+              h.hall_name AS hall_name,
               b.booking_date,
               b.visit_date,
               b.showtime_id,
@@ -66,6 +67,8 @@ export class BookingsService {
 
           LEFT JOIN movies m
             ON m.movie_id = st.movie_id
+          LEFT JOIN halls h
+             ON h.hall_id = st.hall_id
 
           GROUP BY
               b.booking_id,
@@ -81,6 +84,7 @@ export class BookingsService {
               b.status,
               b.arrival_status,
               b.arrived_at
+              h.hall_name,
 
           ORDER BY b.booking_id ASC`,
         );
@@ -99,6 +103,7 @@ export class BookingsService {
                   b.*,
                   st.movie_id,
                   m.movie_name,
+                  h.hall_name AS hall_name,
                   st.start_time,
                   st.end_time,
                   u.name AS customer_name,
@@ -133,6 +138,9 @@ export class BookingsService {
 
                 LEFT JOIN showtimes st
                   ON st.showtime_id = b.showtime_id
+                
+                LEFT JOIN halls h
+                  ON h.hall_id = st.hall_id
 
                 LEFT JOIN movies m
                   ON m.movie_id = st.movie_id
@@ -150,6 +158,7 @@ export class BookingsService {
 
                 GROUP BY b.booking_id,st.movie_id,
                 m.movie_name,
+                h.hall_name,
                 st.start_time,
                 st.end_time, u.name`,
                 [booking_id],
@@ -167,88 +176,92 @@ export class BookingsService {
           
             
     async findBookingsByUserId(user_id: number) {
-      const result = await this.databaseService.query(
-        `SELECT
-            b.booking_id,
-            b.user_id,
-            u.name AS customer_name,
+  const result = await this.databaseService.query(
+    `SELECT
+        b.booking_id,
+        b.user_id,
+        u.name AS customer_name,
 
-            b.booking_date,
-           TO_CHAR(b.visit_date, 'YYYY-MM-DD') AS visit_date,
-            b.showtime_id,
-            st.movie_id,
-            st.start_time,
-            st.end_time,
-            (b.visit_date + st.start_time) AS show_start_datetime,
+        b.booking_date,
+        TO_CHAR(b.visit_date, 'YYYY-MM-DD') AS visit_date,
 
-            m.movie_name,
+        b.showtime_id,
+        st.movie_id,
+        st.start_time,
+        st.end_time,
 
-            m.movie_name,
+        (b.visit_date + st.start_time) AS show_start_datetime,
 
-            b.arrival_status,
-            b.arrived_at,
+        m.movie_name,
+        h.hall_name AS hall_name,
 
-            COALESCE(
-              STRING_AGG(
-                s.row_name || s.seat_number::text,
-                ', ' ORDER BY s.row_name, s.seat_number
-              ) FILTER (WHERE bs.status = 'Booked'),
-              'No seats'
-            ) AS booked_seats,
+        b.arrival_status,
+        b.arrived_at,
 
-            COALESCE(
-              SUM(bs.ticket_price) FILTER (WHERE bs.status = 'Booked'),
-              0
-            ) AS total,
+        COALESCE(
+          STRING_AGG(
+            s.row_name || s.seat_number::text,
+            ', ' ORDER BY s.row_name, s.seat_number
+          ) FILTER (WHERE bs.status = 'Booked'),
+          'No seats'
+        ) AS booked_seats,
 
-            CASE
-              WHEN b.status = 'Cancelled' THEN 'Cancelled'
-              WHEN COUNT(bs.id) FILTER (WHERE bs.status = 'Booked') = 0
-                THEN 'Cancelled'
-              ELSE b.status
-            END AS status
+        COALESCE(
+          SUM(bs.ticket_price) FILTER (WHERE bs.status = 'Booked'),
+          0
+        ) AS total,
 
-        FROM bookings b
+        CASE
+          WHEN b.status = 'Cancelled' THEN 'Cancelled'
+          WHEN COUNT(bs.id) FILTER (WHERE bs.status = 'Booked') = 0
+            THEN 'Cancelled'
+          ELSE b.status
+        END AS status
 
-        LEFT JOIN users u
-          ON u.user_id = b.user_id
+    FROM bookings b
 
-        LEFT JOIN showtimes st
-          ON st.showtime_id = b.showtime_id
+    LEFT JOIN users u
+      ON u.user_id = b.user_id
 
-        LEFT JOIN movies m
-          ON m.movie_id = st.movie_id
+    LEFT JOIN showtimes st
+      ON st.showtime_id = b.showtime_id
 
-        LEFT JOIN booking_seats bs
-          ON bs.booking_id = b.booking_id
+    LEFT JOIN movies m
+      ON m.movie_id = st.movie_id
 
-        LEFT JOIN seats s
-          ON s.seat_id = bs.seat_id
+    LEFT JOIN halls h
+      ON h.hall_id = st.hall_id
 
-        WHERE b.user_id = $1
+    LEFT JOIN booking_seats bs
+      ON bs.booking_id = b.booking_id
 
-        GROUP BY
-            b.booking_id,
-            b.user_id,
-            u.name,
-            b.booking_date,
-            b.visit_date,
-            b.showtime_id,
-            st.movie_id,
-            st.start_time,
-            st.end_time,
-            m.movie_name,
-            b.arrival_status,
-            b.arrived_at,
-            b.status
+    LEFT JOIN seats s
+      ON s.seat_id = bs.seat_id
 
-        ORDER BY b.booking_id DESC`,
-        [user_id],
-      );
+    WHERE b.user_id = $1
 
-      return result.rows;
-    }
+    GROUP BY
+        b.booking_id,
+        b.user_id,
+        u.name,
+        b.booking_date,
+        b.visit_date,
+        b.showtime_id,
+        st.movie_id,
+        st.start_time,
+        st.end_time,
+        m.movie_name,
+        h.hall_name,
+        b.arrival_status,
+        b.arrived_at,
+        b.status
 
+    ORDER BY b.booking_id DESC`,
+    [user_id],
+  );
+
+  return result.rows;
+}
         async confirmArrival(booking_id: number, user_id: number) {
             const pool = this.databaseService.getPool();
             const client = await pool.connect();
