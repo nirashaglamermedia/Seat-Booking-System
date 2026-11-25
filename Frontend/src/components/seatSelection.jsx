@@ -122,6 +122,18 @@ function SeatSelection() {
   const isActiveMember = membership?.status === "Active";
   const maxSeats = isActiveMember ? 10 : 5;
 
+  const [lockToken] = useState(() => {
+  let token = sessionStorage.getItem("seat_lock_token");
+
+  if (!token) {
+    token = crypto.randomUUID();
+    sessionStorage.setItem("seat_lock_token", token);
+  }
+
+  return token;
+});
+
+const [lockingSeat, setLockingSeat] = useState(false);
   
   useEffect(() => {
     if (!showtime_id || !show_date) {
@@ -160,40 +172,39 @@ function SeatSelection() {
       }
     }
 
-    const handleSeatSelected = (data) => {
-      if (
-        Number(data.showtime_id) !== Number(showtime_id) ||
-        data.visit_date !== show_date
-      ) {
-        return;
-      }
+      const handleSeatLocked = (data) => {
+        if (
+          Number(data.showtime_id) !== Number(showtime_id) ||
+          data.visit_date !== show_date
+        ) {
+          return;
+        }
 
-      setSeats((prevSeats) =>
-        prevSeats.map((seat) =>
-          Number(seat.seat_id) === Number(data.seat_id)
-            ? { ...seat, temporaryStatus: "Selected" }
-            : seat
-        )
-      );
-    };
+        setSeats((prevSeats) =>
+          prevSeats.map((seat) =>
+            Number(seat.seat_id) === Number(data.seat_id)
+              ? { ...seat, temporaryStatus: "Selected" }
+              : seat
+          )
+        );
+      };
 
-    const handleSeatUnselected = (data) => {
-      if (
-        Number(data.showtime_id) !== Number(showtime_id) ||
-        data.visit_date !== show_date
-      ) {
-        return;
-      }
+      const handleSeatLockReleased = (data) => {
+        if (
+          Number(data.showtime_id) !== Number(showtime_id) ||
+          data.visit_date !== show_date
+        ) {
+          return;
+        }
 
-      setSeats((prevSeats) =>
-        prevSeats.map((seat) =>
-          Number(seat.seat_id) === Number(data.seat_id)
-            ? { ...seat, temporaryStatus: null }
-            : seat
-        )
-      );
-    };
-
+        setSeats((prevSeats) =>
+          prevSeats.map((seat) =>
+            Number(seat.seat_id) === Number(data.seat_id)
+              ? { ...seat, temporaryStatus: null }
+              : seat
+          )
+        );
+      };
     const handleSeatUpdated = (data) => {
       if (
         Number(data.showtime_id) !== Number(showtime_id) ||
@@ -215,8 +226,8 @@ function SeatSelection() {
       );
     };
 
-    socket.on("seatSelected", handleSeatSelected);
-    socket.on("seatUnselected", handleSeatUnselected);
+    socket.on("seatLocked", handleSeatLocked);
+    socket.on("seatLockReleased", handleSeatLockReleased);
     socket.on("seatUpdated", handleSeatUpdated);
 
     fetchSeats();
@@ -224,8 +235,8 @@ function SeatSelection() {
     return () => {
       isMounted = false;
 
-      socket.off("seatSelected", handleSeatSelected);
-      socket.off("seatUnselected", handleSeatUnselected);
+      socket.off("seatLocked", handleSeatLocked);
+      socket.off("seatLockReleased", handleSeatLockReleased);
       socket.off("seatUpdated", handleSeatUpdated);
     };
   }, [showtime_id, show_date]);
@@ -236,57 +247,115 @@ function SeatSelection() {
     setShowPopup(true);
   }
 
-  function handleSeat(seatName) {
-    const seat = seats.find(
-      (item) =>
-        `${item.row_name}${item.seat_number}` === seatName
-    );
+      async function handleSeat(seatName) {
+        const seat = seats.find(
+          (item) =>
+            `${item.row_name}${item.seat_number}` === seatName
+        );
 
-    if (!seat || seat.status === "Booked") {
-      return;
+        if (!seat || seat.status === "Booked" || lockingSeat) {
+          return;
+        }
+
+       
+        if (selectedSeat.includes(seatName)) {
+          try {
+            setLockingSeat(true);
+
+            const response = await fetch(
+              "http://localhost:3001/bookings/release-seats",
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  showtime_id: Number(showtime_id),
+                  visit_date: show_date,
+                  seat_ids: [Number(seat.seat_id)],
+                  lock_token: lockToken,
+                }),
+              }
+            );
+
+            const data = await response.json();
+
+            if (!response.ok) {
+              throw new Error(data.message || "Could not release seat");
+            }
+
+            setSelectedSeat((prev) =>
+              prev.filter((item) => item !== seatName)
+            );
+          } catch (error) {
+            showMessage("Seat Selection", error.message);
+          } finally {
+            setLockingSeat(false);
+          }
+
+          return;
+        }
+
+        
+        if (selectedSeat.length >= maxSeats) {
+          showMessage(
+            "Seat Selection",
+            `You can select a maximum of ${maxSeats} seats per booking!`
+          );
+          return;
+        }
+
+        
+        if (seat.temporaryStatus === "Selected") {
+          showMessage(
+            "Seat Selection",
+            "This seat is temporarily selected by another customer!"
+          );
+          return;
+        }
+
+        try {
+          setLockingSeat(true);
+
+          const response = await fetch(
+            "http://localhost:3001/bookings/lock-seats",
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                showtime_id: Number(showtime_id),
+                visit_date: show_date,
+                seat_ids: [
+                  ...selectedSeat.map((name) => {
+                    const selected = seats.find(
+                      (item) =>
+                        `${item.row_name}${item.seat_number}` === name
+                    );
+
+                    return Number(selected.seat_id);
+                  }),
+                  Number(seat.seat_id),
+                ],
+                lock_token: lockToken,
+              }),
+            }
+          );
+
+          const data = await response.json();
+
+          if (!response.ok) {
+            throw new Error(data.message || "Could not lock seat");
+          }
+
+          setSelectedSeat((prev) => [...prev, seatName]);
+        } catch (error) {
+          showMessage("Seat Selection", error.message);
+        } finally {
+          setLockingSeat(false);
+        }
     }
-
-    
-    if (selectedSeat.includes(seatName)) {
-      setSelectedSeat((prev) =>
-        prev.filter((item) => item !== seatName)
-      );
-
-      socket.emit("unselectSeat", {
-        seat_id: seat.seat_id,
-        showtime_id: Number(showtime_id),
-        visit_date: show_date,
-      });
-
-      return;
-    }
-
-    
-    if (selectedSeat.length >= maxSeats) {
-      showMessage(
-        "Seat Selection",
-        `You can select a maximum of ${maxSeats} seats per booking!`
-      );
-      return;
-    }
-
-    
-    if (seat.temporaryStatus === "Selected") {
-      showMessage(
-        "Seat Selection",
-        "This seat is temporarily selected by another customer!"
-      );
-      return;
-    }
-
-    setSelectedSeat((prev) => [...prev, seatName]);
-
-    socket.emit("selectSeat", {
-      seat_id: seat.seat_id,
-      showtime_id: Number(showtime_id),
-      visit_date: show_date,
-    });
-  }
 
   function CalculationSeatPrice(seatName) {
     const seat = seats.find(
@@ -346,6 +415,7 @@ function SeatSelection() {
     localStorage.setItem("showtime_id", String(showtime_id));
     localStorage.setItem("visit_date", show_date);
     localStorage.setItem("start_time", start_time);
+    localStorage.setItem("lock_token", lockToken);
 
     if (isLoggedIn) {
       navigate("/booking");

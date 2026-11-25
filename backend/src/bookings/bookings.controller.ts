@@ -24,9 +24,19 @@ export class BookingsController {
           findOneSeat(@Param('booking_id', ParseIntPipe) booking_id: number) {
               return this.bookingsService.findOneBooking(booking_id);
           }
-          @Post()
+        @Post()
         createBooking(@Body() booking: any) {
         return this.bookingsService.createBooking(booking);
+        }
+
+        @Post('lock-seats')
+        lockSeats(@Body() body: any) {
+        return this.bookingsService.lockSeats(body);
+        }
+
+        @Post('release-seats')
+        releaseSeats(@Body() body: any) {
+        return this.bookingsService.releaseSeats(body);
         }
 
         @Patch(':booking_id/arrival')

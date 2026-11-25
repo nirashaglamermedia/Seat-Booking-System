@@ -83,8 +83,8 @@ export class BookingsService {
               m.movie_name,
               b.status,
               b.arrival_status,
-              b.arrived_at
-              h.hall_name,
+              b.arrived_at,
+              h.hall_name
 
           ORDER BY b.booking_id ASC`,
         );
@@ -256,7 +256,7 @@ export class BookingsService {
         b.arrived_at,
         b.status
 
-    ORDER BY b.booking_id DESC`,
+    ORDER BY b.booking_id ASC`,
     [user_id],
   );
 
@@ -352,6 +352,7 @@ export class BookingsService {
                 seats,
                 coupon_code,
                 showtime_id,
+                lock_token,
                 visit_date,
             } = booking;
 
@@ -372,6 +373,11 @@ export class BookingsService {
               );
           }
 
+          if (!lock_token || typeof lock_token !== 'string') {
+                throw new BadRequestException(
+                    'Valid lock token is required',
+                );
+            }
             const pool = this.databaseService.getPool();
             const client = await pool.connect();
 
@@ -468,6 +474,29 @@ export class BookingsService {
                     );
                 }
 
+                
+                const lockResult = await client.query(
+                    `SELECT seat_id
+                    FROM temporary_seat_locks
+                    WHERE showtime_id = $1
+                      AND visit_date = $2
+                      AND seat_id = ANY($3::int[])
+                      AND lock_token = $4
+                      AND expires_at > CURRENT_TIMESTAMP
+                    FOR UPDATE`,
+                    [
+                        Number(showtime_id),
+                        visit_date,
+                        seatIds,
+                        lock_token,
+                    ],
+                );
+
+                if (lockResult.rows.length !== seatIds.length) {
+                    throw new BadRequestException(
+                        'One or more seat locks have expired or belong to another customer',
+                    );
+                }
               
                 const seatResult = await client.query(
                     `SELECT seat_id, price, status
@@ -745,10 +774,29 @@ export class BookingsService {
                 }
 
                 
-                await client.query('COMMIT');
+              // Release temporary locks after successful booking
+              const releasedLocks = await client.query(
+                  `DELETE FROM temporary_seat_locks
+                  WHERE showtime_id = $1
+                    AND visit_date = $2
+                    AND lock_token = $3
+                  RETURNING seat_id`,
+                  [
+                      Number(showtime_id),
+                      visit_date,
+                      lock_token,
+                  ],
+              );
+               await client.query('COMMIT');
 
-                
-                bookingSeats.forEach((seat) => {
+               releasedLocks.rows.forEach((lock) => {
+                  this.seatGateway.server.emit('seatLockReleased', {
+                      seat_id: lock.seat_id,
+                      showtime_id: Number(showtime_id),
+                      visit_date: visit_date,
+                  });
+              }); 
+               bookingSeats.forEach((seat) => {
                   this.seatGateway.server.emit('seatUpdated', {
                     seat_id: seat.seat_id,
                     status: 'Booked',
@@ -792,6 +840,7 @@ export class BookingsService {
             } finally {
                 client.release();
             }
+          
         }
 
        
@@ -1440,5 +1489,215 @@ async cancelBookingSeat(
   }
 }
 
+async lockSeats(data: any) {
+  const {
+    showtime_id,
+    visit_date,
+    seat_ids,
+    lock_token,
+  } = data;
+
+  // 1. Validate request
+  if (
+    !Number.isInteger(Number(showtime_id)) ||
+    Number(showtime_id) <= 0 ||
+    !visit_date ||
+    !Array.isArray(seat_ids) ||
+    seat_ids.length === 0 ||
+    !lock_token ||
+    String(lock_token).trim() === ''
+  ) {
+    throw new BadRequestException(
+      'Valid showtime, visit date, seats and lock token are required',
+    );
+  }
+
+  const seatIds = seat_ids.map((id: any) => Number(id));
+
+  if (
+    seatIds.some((id: number) => !Number.isInteger(id) || id <= 0) ||
+    new Set(seatIds).size !== seatIds.length
+  ) {
+    throw new BadRequestException('Invalid or duplicate seat IDs');
+  }
+
+  const pool = this.databaseService.getPool();
+  const client = await pool.connect();
+
+  try {
+    await client.query('BEGIN');
+
+    // 2. Get showtime and its hall
+    const showtimeResult = await client.query(
+      `SELECT showtime_id, hall_id
+       FROM showtimes
+       WHERE showtime_id = $1`,
+      [Number(showtime_id)],
+    );
+
+    if (showtimeResult.rows.length === 0) {
+      throw new NotFoundException('Showtime not found');
+    }
+
+    const hallId = Number(showtimeResult.rows[0].hall_id);
+
+    // 3. Lock seat records in a consistent order
+    const seatResult = await client.query(
+      `SELECT seat_id, hall_id
+       FROM seats
+       WHERE seat_id = ANY($1::int[])
+       ORDER BY seat_id
+       FOR UPDATE`,
+      [seatIds],
+    );
+
+    if (seatResult.rows.length !== seatIds.length) {
+      throw new BadRequestException('One or more seats do not exist');
+    }
+
+    if (seatResult.rows.some(
+      (seat: any) => Number(seat.hall_id) !== hallId,
+    )) {
+      throw new BadRequestException(
+        'Selected seats do not belong to this showtime hall',
+      );
+    }
+
+    // 4. Remove expired locks
+    await client.query(
+      `DELETE FROM temporary_seat_locks
+       WHERE expires_at <= CURRENT_TIMESTAMP`,
+    );
+
+    // 5. Check already booked seats
+    const bookedResult = await client.query(
+      `SELECT DISTINCT bs.seat_id
+       FROM booking_seats bs
+       INNER JOIN bookings b
+         ON b.booking_id = bs.booking_id
+       WHERE bs.seat_id = ANY($1::int[])
+         AND b.showtime_id = $2
+         AND b.visit_date = $3
+         AND b.status = 'Confirmed'
+         AND bs.status = 'Booked'`,
+      [seatIds, Number(showtime_id), visit_date],
+    );
+
+    if (bookedResult.rows.length > 0) {
+      throw new BadRequestException(
+        'One or more selected seats are already booked',
+      );
+    }
+
+    // 6. Create temporary locks (5 minutes)
+    for (const seatId of seatIds) {
+      const lockResult = await client.query(
+        `INSERT INTO temporary_seat_locks
+          (showtime_id, visit_date, seat_id, lock_token, expires_at)
+         VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP + INTERVAL '5 minutes')
+         ON CONFLICT (showtime_id, visit_date, seat_id)
+         DO UPDATE SET
+           lock_token = EXCLUDED.lock_token,
+           expires_at = EXCLUDED.expires_at
+         WHERE temporary_seat_locks.expires_at <= CURRENT_TIMESTAMP
+            OR temporary_seat_locks.lock_token = EXCLUDED.lock_token
+         RETURNING seat_id`,
+        [
+          Number(showtime_id),
+          visit_date,
+          seatId,
+          String(lock_token),
+        ],
+      );
+
+      if (lockResult.rows.length === 0) {
+        throw new BadRequestException(
+          `Seat ${seatId} is temporarily selected by another user`,
+        );
+      }
+    }
+
+    await client.query('COMMIT');
+
+    // 7. Notify other browsers
+    seatIds.forEach((seatId: number) => {
+      this.seatGateway.server.emit('seatLocked', {
+        seat_id: seatId,
+        showtime_id: Number(showtime_id),
+        visit_date,
+        status: 'Selected',
+        lock_token: String(lock_token),
+        expires_in: 300,
+      });
+    });
+
+    return {
+      message: 'Seats locked successfully for 5 minutes',
+      seat_ids: seatIds,
+    };
+
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+
+async releaseSeats(data: any) {
+  const {
+    showtime_id,
+    visit_date,
+    seat_ids,
+    lock_token,
+  } = data;
+
+  if (
+    !Number.isInteger(Number(showtime_id)) ||
+    !visit_date ||
+    !Array.isArray(seat_ids) ||
+    !lock_token
+  ) {
+    throw new BadRequestException('Invalid release request');
+  }
+
+  const seatIds = seat_ids.map((id: any) => Number(id));
+
+  if (
+    seatIds.some((id: number) => !Number.isInteger(id) || id <= 0) ||
+    new Set(seatIds).size !== seatIds.length
+  ) {
+    throw new BadRequestException('Invalid seat IDs');
+  }
+
+  const result = await this.databaseService.query(
+    `DELETE FROM temporary_seat_locks
+     WHERE showtime_id = $1
+       AND visit_date = $2
+       AND seat_id = ANY($3::int[])
+       AND lock_token = $4
+     RETURNING seat_id`,
+    [
+      Number(showtime_id),
+      visit_date,
+      seatIds,
+      String(lock_token),
+    ],
+  );
+
+  result.rows.forEach((row: any) => {
+    this.seatGateway.server.emit('seatLockReleased', {
+      seat_id: Number(row.seat_id),
+      showtime_id: Number(showtime_id),
+      visit_date,
+    });
+  });
+
+  return {
+    message: 'Seat locks released successfully',
+    released_seats: result.rows.map((row: any) => Number(row.seat_id)),
+  };
+}
     
 }

@@ -332,7 +332,12 @@ function Booking() {
       });
 
       const token = localStorage.getItem('access_token');
+      
+      const lockToken = sessionStorage.getItem('lock_token');
 
+      if (!lockToken) {
+        throw new Error('Seat lock expired. Please select your seats again.');
+      }
       const response = await fetch("http://localhost:3001/bookings", {
         method: "POST",
         headers: {
@@ -343,6 +348,7 @@ function Booking() {
           showtime_id: Number(showtimeId),
           visit_date: visitDate,
           seats: seatsToBook,
+          lock_token: lockToken,
           ...(appliedCoupon ? { coupon_code: appliedCoupon } : {}),
         }),
       });
@@ -369,6 +375,7 @@ function Booking() {
       localStorage.removeItem('showtime_id');
       localStorage.removeItem('visit_date');
       localStorage.removeItem('start_time');
+      sessionStorage.removeItem('lock_token');
 
       if (result.generated_coupon_code) {
         setGeneratedCoupon({

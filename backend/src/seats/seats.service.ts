@@ -34,61 +34,72 @@ export class SeatsService {
 
   
   
-async getSeatAvailability(
-  showtime_id: number,
-  visit_date: string,
-  exclude_booking_id?: number,
-) {
-  const result = await this.seatRepository.query(
-    `
-    SELECT
-      s.seat_id,
-      s.hall_id,
-      s.row_name,
-      s.seat_number,
-      s.price,
-      s.status AS seat_status,
 
-      CASE
-        WHEN EXISTS (
-          SELECT 1
-          FROM booking_seats bs
-          INNER JOIN bookings b
-            ON bs.booking_id = b.booking_id
-          WHERE bs.seat_id = s.seat_id
-            AND b.showtime_id = $1
-            AND b.visit_date = $2
-            AND b.status = 'Confirmed'
-            AND bs.status = 'Booked'
-            AND (
-              $3::int IS NULL
-              OR b.booking_id <> $3
-            )
-        )
-        THEN 'Booked'
-        ELSE 'Available'
-      END AS status
+  async getSeatAvailability(showtime_id: number,visit_date: string,exclude_booking_id?: number,) {
+    const result = await this.seatRepository.query(
+      `
+      SELECT
+        s.seat_id,
+        s.hall_id,
+        s.row_name,
+        s.seat_number,
+        s.price,
+        s.status AS seat_status,
 
-    FROM seats s
-    INNER JOIN showtimes st
-      ON st.hall_id = s.hall_id
+        CASE
+          WHEN EXISTS (
+            SELECT 1
+            FROM booking_seats bs
+            INNER JOIN bookings b
+              ON bs.booking_id = b.booking_id
+            WHERE bs.seat_id = s.seat_id
+              AND b.showtime_id = $1
+              AND b.visit_date = $2
+              AND b.status = 'Confirmed'
+              AND bs.status = 'Booked'
+              AND (
+                $3::int IS NULL
+                OR b.booking_id <> $3
+              )
+          )
+          THEN 'Booked'
+          ELSE 'Available'
+        END AS status,
 
-    WHERE st.showtime_id = $1
-      AND s.status = 'Available'
+        CASE
+          WHEN tsl.lock_id IS NOT NULL
+          THEN 'Selected'
+          ELSE NULL
+        END AS "temporaryStatus"
 
-    ORDER BY
-      s.row_name ASC,
-      s.seat_number ASC
-    `,
-    [
-      showtime_id,
-      visit_date,
-      exclude_booking_id ?? null,
-    ],
-  );
+      FROM seats s
 
-  return result;
-}
+      INNER JOIN showtimes st
+        ON st.hall_id = s.hall_id
+
+      LEFT JOIN temporary_seat_locks tsl
+        ON tsl.seat_id = s.seat_id
+        AND tsl.showtime_id = $1
+        AND tsl.visit_date = $2
+        AND tsl.expires_at > CURRENT_TIMESTAMP
+
+      WHERE st.showtime_id = $1
+        AND s.status = 'Available'
+
+      ORDER BY
+        s.row_name ASC,
+        s.seat_number ASC
+      `,
+      [
+        showtime_id,
+        visit_date,
+        exclude_booking_id ?? null,
+      ],
+    );
+
+    return result;
+  }
+
 
 
   
