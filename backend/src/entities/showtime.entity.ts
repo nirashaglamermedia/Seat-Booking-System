@@ -7,6 +7,7 @@ import {
 } from 'typeorm';
 
 import { Movie } from '../entities/movies.entity';
+import { Hall } from './halls.entity';
 
 @Entity('showtimes')
 export class Showtime {
@@ -28,4 +29,8 @@ export class Showtime {
   @ManyToOne(() => Movie, (movie) => movie.showtimes)
   @JoinColumn({ name: 'movie_id' })
   movie: Movie;
+
+  @ManyToOne(() => Hall)
+    @JoinColumn({ name: 'hall_id' })
+    hall: Hall;
 }

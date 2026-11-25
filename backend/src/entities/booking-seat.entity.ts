@@ -1,3 +1,4 @@
+
 import {
   Entity,
   PrimaryGeneratedColumn,
@@ -7,6 +8,7 @@ import {
 } from 'typeorm';
 
 import { Booking } from './booking.entity';
+import { Seat } from './seats.entity';
 
 @Entity('booking_seats')
 export class BookingSeat {
@@ -30,7 +32,14 @@ export class BookingSeat {
   @Column({ type: 'varchar', nullable: false })
   status: string;
 
-  @ManyToOne(() => Booking, (booking) => booking.bookingSeats)
+  @ManyToOne(
+    () => Booking,
+    (booking) => booking.bookingSeats,
+  )
   @JoinColumn({ name: 'booking_id' })
   booking: Booking;
+
+  @ManyToOne(() => Seat)
+  @JoinColumn({ name: 'seat_id' })
+  seat: Seat;
 }

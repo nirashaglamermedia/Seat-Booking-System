@@ -1,9 +1,9 @@
+
 import { Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-
-import { DatabaseModule } from './database/database.module';
 
 import { UsersModule } from './users/users.module';
 import { SeatsModule } from './seats/seats.module';
@@ -14,12 +14,22 @@ import { CouponsModule } from './coupons/coupons.module';
 import { MembershipsModule } from './memberships/memberships.module';
 import { MoviesModule } from './movies/movies.module';
 import { ShowtimesModule } from './showtimes/showtimes.module';
-
 import { HallsModule } from './halls/halls.module';
 
 @Module({
   imports: [
-    DatabaseModule,
+    TypeOrmModule.forRoot({
+      type: 'postgres',
+      host: 'localhost',
+      port: 5432,
+      username: 'postgres',
+      password: '123',
+      database: 'seat_booking',
+
+      autoLoadEntities: true,
+      synchronize: false,
+    }),
+
     UsersModule,
     SeatsModule,
     BookingsModule,
@@ -31,6 +41,7 @@ import { HallsModule } from './halls/halls.module';
     ShowtimesModule,
     HallsModule,
   ],
+
   controllers: [AppController],
   providers: [AppService],
 })

@@ -1,10 +1,13 @@
-
 import {
   Entity,
   PrimaryGeneratedColumn,
   Column,
   CreateDateColumn,
+  OneToMany,
 } from 'typeorm';
+
+import { Seat } from './seats.entity';
+import { Showtime } from './showtime.entity';
 
 @Entity('halls')
 export class Hall {
@@ -25,4 +28,12 @@ export class Hall {
 
   @CreateDateColumn()
   created_at: Date;
+
+  // One Hall has many Seats
+  @OneToMany(() => Seat, (seat) => seat.hall)
+  seats: Seat[];
+
+  // One Hall has many Showtimes
+  @OneToMany(() => Showtime, (showtime) => showtime.hall)
+  showtimes: Showtime[];
 }

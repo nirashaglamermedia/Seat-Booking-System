@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { io } from "socket.io-client";
 import { useGetMembershipsQuery } from "../features/membershipApi";
+import CinemaHall3D from './cinemaHall3D';
 
 const socket = io("http://localhost:3001");
 
@@ -123,15 +124,15 @@ function SeatSelection() {
   const maxSeats = isActiveMember ? 10 : 5;
 
   const [lockToken] = useState(() => {
-  let token = sessionStorage.getItem("seat_lock_token");
+    let token = sessionStorage.getItem("lock_token");
 
-  if (!token) {
-    token = crypto.randomUUID();
-    sessionStorage.setItem("seat_lock_token", token);
-  }
+    if (!token) {
+      token = crypto.randomUUID();
+      sessionStorage.setItem("lock_token", token);
+    }
 
-  return token;
-});
+    return token;
+  });
 
 const [lockingSeat, setLockingSeat] = useState(false);
   
@@ -366,63 +367,89 @@ const [lockingSeat, setLockingSeat] = useState(false);
     return seat ? Number(seat.price) : 0;
   }
 
-  function handleBooking() {
-    if (selectedSeat.length === 0) {
-      showMessage(
-        "Booking Message",
-        "Please select at least one seat!"
+    function handleBooking() {
+      if (selectedSeat.length === 0) {
+        showMessage(
+          "Booking Message",
+          "Please select at least one seat!"
+        );
+        return;
+      }
+
+      // Get the exact seat IDs from the currently loaded showtime seats
+      const selectedSeatIds = selectedSeat.map((seatName) => {
+        const seat = seats.find(
+          (item) =>
+            `${item.row_name}${item.seat_number}` === seatName
+        );
+
+        return seat ? Number(seat.seat_id) : null;
+      });
+
+      // Make sure every selected seat has a valid ID
+      if (selectedSeatIds.some((id) => id === null)) {
+        showMessage(
+          "Seat Selection",
+          "Some selected seats could not be found. Please select your seats again."
+        );
+        return;
+      }
+
+      const subtotal = selectedSeat.reduce((total, seatName) => {
+        return total + CalculationSeatPrice(seatName);
+      }, 0);
+
+      const seatDiscount = selectedSeat.reduce(
+        (total, seatName, index) => {
+          const price = CalculationSeatPrice(seatName);
+
+          if ((index + 1) % 3 === 0) {
+            return total + price * 0.5;
+          }
+
+          return total;
+        },
+        0
       );
-      return;
+
+      const membershipDiscount = isActiveMember
+        ? (subtotal - seatDiscount) * 0.05
+        : 0;
+
+      const discount = seatDiscount + membershipDiscount;
+      const total = subtotal - discount;
+
+      // Save selected seat names and their exact IDs
+      localStorage.setItem(
+        "selectedSeats",
+        JSON.stringify(selectedSeat)
+      );
+
+      localStorage.setItem(
+        "selectedSeatIds",
+        JSON.stringify(selectedSeatIds)
+      );
+
+      // Save price details
+      localStorage.setItem("subtotal", subtotal.toString());
+      localStorage.setItem("discount", discount.toString());
+      localStorage.setItem("totalPrice", total.toString());
+
+      // Save movie and showtime details
+      localStorage.setItem("movie_id", String(movie_id));
+      localStorage.setItem("movie_name", movie_name);
+      localStorage.setItem("showtime_id", String(showtime_id));
+      localStorage.setItem("visit_date", show_date);
+      localStorage.setItem("start_time", start_time);
+
+      sessionStorage.setItem("lock_token", lockToken);
+
+      if (isLoggedIn) {
+        navigate("/booking");
+      } else {
+        navigate("/register");
+      }
     }
-
-    const subtotal = selectedSeat.reduce((total, seatName) => {
-      return total + CalculationSeatPrice(seatName);
-    }, 0);
-
-    
-    const seatDiscount = selectedSeat.reduce(
-      (total, seatName, index) => {
-        const price = CalculationSeatPrice(seatName);
-
-        if ((index + 1) % 3 === 0) {
-          return total + price * 0.5;
-        }
-
-        return total;
-      },
-      0
-    );
-
-    
-    const membershipDiscount = isActiveMember
-      ? (subtotal - seatDiscount) * 0.05
-      : 0;
-
-    const discount = seatDiscount + membershipDiscount;
-    const total = subtotal - discount;
-
-    localStorage.setItem(
-      "selectedSeats",
-      JSON.stringify(selectedSeat)
-    );
-
-    localStorage.setItem("subtotal", subtotal.toString());
-    localStorage.setItem("discount", discount.toString());
-    localStorage.setItem("totalPrice", total.toString());
-
-    localStorage.setItem("movie_id", String(movie_id));
-    localStorage.setItem("movie_name", movie_name);
-    localStorage.setItem("showtime_id", String(showtime_id));
-    localStorage.setItem("visit_date", show_date);
-    localStorage.setItem("start_time", start_time);
-    localStorage.setItem("lock_token", lockToken);
-
-    if (isLoggedIn) {
-      navigate("/booking");
-    } else {
-      navigate("/register");
-    }
-  }
 
   if (!showtime_id || !show_date) {
     return (
@@ -507,91 +534,60 @@ const [lockingSeat, setLockingSeat] = useState(false);
           <div className="col-lg-8">
             <div className="ss-card">
               <div className="d-flex justify-content-center gap-4 mb-3 flex-wrap">
+
                 <span>
-                  <span className="ss-swatch available"></span>{" "}
-                  Available
+                  <span className="ss-swatch available"></span>
+                  {' '}Available
                 </span>
 
                 <span>
-                  <span className="ss-swatch selected"></span>{" "}
-                  Selected
+                  <span className="ss-swatch selected"></span>
+                  {' '}Selected
                 </span>
 
                 <span>
-                  <span className="ss-swatch booked"></span>{" "}
-                  Booked
+                  <span className="ss-swatch booked"></span>
+                  {' '}Booked
                 </span>
-              </div>
 
+                <span>
+                  <span
+                    className="ss-swatch"
+                    style={{ background: '#ffa500' }}
+                  ></span>
+                  {' '}Temporarily Locked
+                </span>
+
+            </div>
               <hr />
 
               <div className="ss-seats">
-                {loading && <p className="text-center">Loading seats...</p>}
 
-                {error && (
-                  <div className="alert alert-danger">{error}</div>
-                )}
+              {loading && (
+                <p className="text-center">Loading seats...</p>
+              )}
 
-                {!loading && !error && seats.length === 0 && (
-                  <p className="text-center">No seats available.</p>
-                )}
+              {error && (
+                <div className="alert alert-danger">
+                  {error}
+                </div>
+              )}
 
-                {!loading &&
-                  !error &&
-                  Object.entries(
-                    seats.reduce((groups, seat) => {
-                      if (!groups[seat.row_name]) {
-                        groups[seat.row_name] = [];
-                      }
+              {!loading && !error && seats.length === 0 && (
+                <p className="text-center">
+                  No seats available.
+                </p>
+              )}
 
-                      groups[seat.row_name].push(seat);
-                      return groups;
-                    }, {})
-                  )
-                    .sort(([rowA], [rowB]) =>
-                      rowA.localeCompare(rowB)
-                    )
-                    .map(([rowName, rowSeats]) => (
-                      <div className="ss-row" key={rowName}>
-                        <span className="ss-rowname">{rowName}</span>
+              {!loading && !error && seats.length > 0 && (
+                <CinemaHall3D
+                  seats={seats}
+                  selectedSeat={selectedSeat}
+                  onSeatClick={handleSeat}
+                />
+              )}
 
-                        {rowSeats
-                          .sort(
-                            (a, b) =>
-                              Number(a.seat_number) -
-                              Number(b.seat_number)
-                          )
-                          .map((item) => {
-                            const seatName =
-                              `${item.row_name}${item.seat_number}`;
-
-                            return (
-                              <button
-                                className={
-                                  item.status === "Booked"
-                                    ? "btn btn-danger"
-                                    : selectedSeat.includes(seatName) ||
-                                      item.temporaryStatus === "Selected"
-                                    ? "btn btn-success"
-                                    : "btn btn-outline-primary"
-                                }
-                                key={item.seat_id}
-                                type="button"
-                                disabled={
-                                  item.status === "Booked" ||
-                                  (item.temporaryStatus === "Selected" &&
-                                    !selectedSeat.includes(seatName))
-                                }
-                                onClick={() => handleSeat(seatName)}
-                                title={item.status}
-                              >
-                                {seatName}
-                              </button>
-                            );
-                          })}
-                      </div>
-                    ))}
-              </div>
+            </div>
 
               <div className="ss-screen-wrap">
                 <div className="ss-screen"></div>

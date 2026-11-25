@@ -224,38 +224,39 @@ function Booking() {
     }
   }
 
-  function handleRemoveCoupon() {
-    setAppliedCoupon('');
-    setCouponDiscount(0);
-    setCouponCode('');
-    setCouponMessage('');
-  }
-
-  const finalTotal = Math.max(
-    0,
-    totalPrice - couponDiscount
-  );
-  async function downloadCouponPNG() {
-    if (!couponCardRef.current || !generatedCoupon) {
-      return;
+    function handleRemoveCoupon() {
+      setAppliedCoupon('');
+      setCouponDiscount(0);
+      setCouponCode('');
+      setCouponMessage('');
     }
 
-    try {
-      const imageUrl = await toPng(couponCardRef.current, {
-        cacheBust: true,
-        pixelRatio: 2,
-        backgroundColor: '#172554',
-      });
+    const finalTotal = Math.max(
+      0,
+      totalPrice - couponDiscount
+    );
+    async function downloadCouponPNG() {
+      if (!couponCardRef.current || !generatedCoupon) {
+        return;
+      }
 
-      const link = document.createElement('a');
-      link.download = `Cinema-Coupon-${generatedCoupon.code}.png`;
-      link.href = imageUrl;
-      link.click();
-    } catch (error) {
-      console.error('Coupon PNG Error:', error);
-      showMessage('Download Failed', 'Unable to download coupon. Please try again.');
+      try {
+        const imageUrl = await toPng(couponCardRef.current, {
+          cacheBust: true,
+          pixelRatio: 2,
+          backgroundColor: '#172554',
+        });
+
+        const link = document.createElement('a');
+        link.download = `Cinema-Coupon-${generatedCoupon.code}.png`;
+        link.href = imageUrl;
+        link.click();
+      } catch (error) {
+        console.error('Coupon PNG Error:', error);
+        showMessage('Download Failed', 'Unable to download coupon. Please try again.');
+      }
     }
-  }
+    
   async function handleConfirm() {
     setErrorMessage('');
 
@@ -287,8 +288,7 @@ function Booking() {
       showMessage(
         'Session Invalid',
         'Your session is invalid. Please login again.'
-      )
-
+      );
       navigate('/login');
       return;
     }
@@ -296,9 +296,8 @@ function Booking() {
     if (!user?.user_id) {
       showMessage(
         'User details not found.',
-        ' Please login again.'
-      )
-
+        'Please login again.'
+      );
       navigate('/login');
       return;
     }
@@ -306,66 +305,73 @@ function Booking() {
     setLoading(true);
 
     try {
-      const seatsResponse = await fetch(
-        'http://localhost:3001/seats'
+      // Get the exact seat IDs saved from SeatSelection.jsx
+      const selectedSeatIds = JSON.parse(
+        localStorage.getItem('selectedSeatIds') || '[]'
       );
 
-      if (!seatsResponse.ok) {
-        throw new Error('Unable to load seat information.');
+      if (
+        !Array.isArray(selectedSeatIds) ||
+        selectedSeatIds.length !== selectedSeat.length ||
+        selectedSeatIds.some(
+          (id) => !Number.isInteger(Number(id)) || Number(id) <= 0
+        )
+      ) {
+        throw new Error(
+          'Seat information mismatch. Please select your seats again.'
+        );
       }
 
-      const allSeats = await seatsResponse.json();
+      const seatsToBook = selectedSeatIds.map((seatId) => ({
+        seat_id: Number(seatId),
+      }));
 
-      const seatsToBook = selectedSeat.map((seatName) => {
-        const seat = allSeats.find(
-          (item) =>
-            `${item.row_name}${item.seat_number}` === seatName
-        );
-
-        if (!seat) {
-          throw new Error(`Seat ${seatName} was not found.`);
-        }
-
-        return {
-          seat_id: Number(seat.seat_id),
-        };
-      });
-
-      const token = localStorage.getItem('access_token');
-      
       const lockToken = sessionStorage.getItem('lock_token');
 
       if (!lockToken) {
-        throw new Error('Seat lock expired. Please select your seats again.');
-      }
-      const response = await fetch("http://localhost:3001/bookings", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          user_id: Number(user.user_id),
-          showtime_id: Number(showtimeId),
-          visit_date: visitDate,
-          seats: seatsToBook,
-          lock_token: lockToken,
-          ...(appliedCoupon ? { coupon_code: appliedCoupon } : {}),
-        }),
-      });
-
-      const result = await response.json();
-
-      console.log("Booking API Response:", result);
-
-      if (!response.ok) {
         throw new Error(
-          Array.isArray(result.message)
-            ? result.message.join(", ")
-            : result.message || "Booking failed"
+          'Seat lock expired. Please select your seats again.'
         );
       }
 
+      const response = await fetch(
+        'http://localhost:3001/bookings',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            user_id: Number(user.user_id),
+            showtime_id: Number(showtimeId),
+            visit_date: visitDate,
+            seats: seatsToBook,
+            lock_token: lockToken,
+            ...(appliedCoupon
+              ? { coupon_code: appliedCoupon }
+              : {}),
+          }),
+        }
+      );
+
+      const result = await response.json();
+
+      console.log('Booking API Status:', response.status);
+      console.log('Booking API Response:', result);
+
+      if (!response.ok) {
+        const message = result?.message;
+
+        throw new Error(
+          Array.isArray(message)
+            ? message.join(', ')
+            : message || 'Booking failed'
+        );
+      }
+
+      // Booking successful
       localStorage.removeItem('selectedSeats');
+      localStorage.removeItem('selectedSeatIds');
       localStorage.removeItem('totalPrice');
       localStorage.removeItem('subtotal');
       localStorage.removeItem('discount');
@@ -375,6 +381,7 @@ function Booking() {
       localStorage.removeItem('showtime_id');
       localStorage.removeItem('visit_date');
       localStorage.removeItem('start_time');
+
       sessionStorage.removeItem('lock_token');
 
       if (result.generated_coupon_code) {
@@ -398,17 +405,25 @@ function Booking() {
       } else {
         showMessage(
           'Booking Successful',
-          `Your booking ID is ${result.booking_id}. Final Amount: Rs. ${Number(result.final_total ?? result.total ?? finalTotal).toFixed(2)}`
+          `Your booking ID is ${result.booking_id}. Final Amount: Rs. ${Number(
+            result.final_total ?? result.total ?? finalTotal
+          ).toFixed(2)}`
         );
       }
+
     } catch (error) {
+      console.error('Booking Error:', error);
+      console.error('Booking Error Message:', error.message);
+
       setErrorMessage(
         error.message || 'Something went wrong. Please try again.'
       );
+
     } finally {
       setLoading(false);
     }
   }
+
 
   function handleCancel() {
     if (loading) return;

@@ -1,14 +1,22 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { DatabaseService } from '../database/database.service';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository, DataSource } from 'typeorm';
+import { Booking } from '../entities/booking.entity';
 import { SeatGateway } from './seat.gateway';
+import { DatabaseService } from '../database/database.service';
 
 
 
 @Injectable()
 export class BookingsService {
    constructor(
-    private readonly databaseService: DatabaseService,
+    @InjectRepository(Booking)
+    private readonly bookingRepository: Repository<Booking>,
+
+    private readonly dataSource: DataSource,
+
     private readonly seatGateway: SeatGateway,
+    private readonly databaseService: DatabaseService,
     
   ) {}
    
@@ -1589,12 +1597,12 @@ async lockSeats(data: any) {
       );
     }
 
-    // 6. Create temporary locks (5 minutes)
+    // 6. Create temporary locks (15 minutes)
     for (const seatId of seatIds) {
       const lockResult = await client.query(
         `INSERT INTO temporary_seat_locks
           (showtime_id, visit_date, seat_id, lock_token, expires_at)
-         VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP + INTERVAL '5 minutes')
+         VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP + INTERVAL '15 minutes')
          ON CONFLICT (showtime_id, visit_date, seat_id)
          DO UPDATE SET
            lock_token = EXCLUDED.lock_token,
@@ -1627,12 +1635,12 @@ async lockSeats(data: any) {
         visit_date,
         status: 'Selected',
         lock_token: String(lock_token),
-        expires_in: 300,
+        expires_in: 900,
       });
     });
 
     return {
-      message: 'Seats locked successfully for 5 minutes',
+      message: 'Seats locked successfully for 15 minutes',
       seat_ids: seatIds,
     };
 

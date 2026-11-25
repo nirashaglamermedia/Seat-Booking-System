@@ -210,23 +210,20 @@ function BookingList() {
                       </td>
 
                       <td className="text-center text-nowrap">
-                        <button
-                            type="button"
-                            className="btn btn-sm btn-warning me-1"
-                            disabled={booking.arrival_status === 'Arrived'}
-                            title={
-                              booking.arrival_status === 'Arrived'
-                                ? 'Cannot edit an arrived booking'
-                                : 'Edit Booking'
-                            }
-                            onClick={() =>
-                              navigate(`/edit-booking/${booking.booking_id}`)
-                            }
-                          >
-                            {booking.arrival_status === 'Arrived'
-                              ? 'Already Arrived'
-                              : 'Edit'}
-                          </button>
+                       {new Date(booking.visit_date).setHours(0, 0, 0, 0) >=
+                          new Date().setHours(0, 0, 0, 0) &&
+                          booking.arrival_status !== 'Arrived' &&
+                          booking.status !== 'Cancelled' && (
+                            <button
+                              type="button"
+                              className="btn btn-sm btn-warning me-1"
+                              onClick={() =>
+                                navigate(`/edit-booking/${booking.booking_id}`)
+                              }
+                            >
+                              Edit
+                            </button>
+                          )}
 
                         <button
                           type="button"

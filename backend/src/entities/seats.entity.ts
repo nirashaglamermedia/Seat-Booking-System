@@ -3,7 +3,11 @@ import {
   Entity,
   PrimaryGeneratedColumn,
   Column,
+  ManyToOne, JoinColumn
 } from 'typeorm';
+
+
+import { Hall } from './halls.entity';
 
 @Entity('seats')
 export class Seat {
@@ -25,4 +29,8 @@ export class Seat {
     scale: 2,
   })
   price: string;
+
+  @ManyToOne(() => Hall, (hall) => hall.seats)
+  @JoinColumn({ name: 'hall_id' })
+  hall: Hall;
 }

@@ -2,8 +2,8 @@
 erDiagram
 
     USERS ||--o{ BOOKINGS : makes
-    USERS ||--o| COUPONS : receives
-    USERS ||--o| MEMBERSHIPS : owns
+    USERS ||--o{ COUPONS : receives
+    USERS ||--o{ MEMBERSHIPS : owns
 
     MOVIES ||--o{ SHOWTIMES : has
     HALLS ||--o{ SEATS : contains
@@ -37,7 +37,7 @@ erDiagram
 
     HALLS {
         int hall_id PK
-        varchar hall_name
+        varchar hall_name UK
         int total_rows
         int seats_per_row
         varchar status
