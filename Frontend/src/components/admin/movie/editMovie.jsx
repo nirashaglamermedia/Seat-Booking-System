@@ -12,7 +12,8 @@ function EditMovie() {
     
     const [movieName, setMovieName] = useState('');
     const [description, setDescription] = useState('');
-    const [showtime, setShowtime] = useState('');
+    const [showtimes, setShowtimes] = useState([]);
+    const [halls, setHalls] = useState([]);
     const [durationMinutes, setDurationMinutes] = useState('');
     const [status, setStatus] = useState('');
   
@@ -43,15 +44,16 @@ function EditMovie() {
   
   
    
-   useEffect(() => {
-  if (movie) {
-    setMovieName(movie.movie_name ?? '');
-    setDescription(movie.description ?? '');
-    setShowtime(movie.start_time ?? '');
-    setDurationMinutes(movie.duration_minutes ?? '');
-    setStatus(movie.status ?? '');
-  }
-}, [movie]);
+  useEffect(() => {
+    if (movie) {
+      setMovieName(movie.movie_name ?? '');
+      setDescription(movie.description ?? '');
+      setShowtimes(movie.showtimes ?? []);
+      setHalls(movie.halls ?? []);
+      setDurationMinutes(movie.duration_minutes ?? '');
+      setStatus(movie.status ?? '');
+    }
+  }, [movie]);
   
     
     const showMessage = (title, message, type = 'success') => {
@@ -266,17 +268,27 @@ function EditMovie() {
                 </div>
                 
                 <div className="col-md-6">
-                  <label className="form-label fw-semibold">
-                    ShowTime
-                  </label>
+                    <label className="form-label fw-semibold">
+                      Showtimes
+                    </label>
 
-                  <input
-                    type="time"
-                    className="form-control"
-                    value={showtime ? String(showtime).slice(0, 5) : ''}
-                    readOnly
-                  />
-                </div>
+                    <div className="form-control bg-light" style={{ minHeight: '45px' }}>
+                      {showtimes.length > 0 ? (
+                        <div className="d-flex flex-wrap gap-2">
+                          {showtimes.map((item) => (
+                            <span
+                              key={item.showtime_id}
+                              className="badge bg-primary px-3 py-2"
+                            >
+                              {String(item.start_time).slice(0, 5)}
+                            </span>
+                          ))}
+                        </div>
+                      ) : (
+                        'No Showtimes'
+                      )}
+                    </div>
+                  </div>
 
   
                 
@@ -292,7 +304,28 @@ function EditMovie() {
                     readOnly
                   />
                 </div>
-  
+                <div className="col-md-6">
+                    <label className="form-label fw-semibold">
+                      Halls
+                    </label>
+
+                    <div className="form-control bg-light" style={{ minHeight: '45px' }}>
+                      {halls.length > 0 ? (
+                        <div className="d-flex flex-wrap gap-2">
+                          {halls.map((hall, index) => (
+                            <span
+                              key={index}
+                              className="badge bg-info text-dark px-3 py-2"
+                            >
+                              {hall}
+                            </span>
+                          ))}
+                        </div>
+                      ) : (
+                        'No Halls'
+                      )}
+                    </div>
+                  </div>
                 
                 <div className="col-md-6">
                   <label className="form-label fw-semibold">

@@ -133,11 +133,14 @@ function MovieList() {
 
               <thead className="table-light">
                 <tr>
-                  <th className="ps-3">Movie ID</th>
+                  
                   <th>Movie Name</th>
                   <th>Description</th>
                   <th>Showtimes</th>
                   <th>Duration (min)</th>
+                  <th>Halls</th>
+                  <th>Movie Start Date</th>
+                  <th>Movie End Date</th>
                   <th>Status</th>
                   <th className="text-center">Action</th>
                 </tr>
@@ -148,7 +151,7 @@ function MovieList() {
                 {/* LOADING */}
                 {isLoading && (
                   <tr>
-                    <td colSpan="7" className="text-center py-5">
+                    <td colSpan="10" className="text-center py-5">
 
                       <div className="spinner-border text-primary"></div>
 
@@ -164,7 +167,7 @@ function MovieList() {
                 {isError && (
                   <tr>
                     <td
-                      colSpan="7"
+                      colSpan="10"
                       className="text-center py-5 text-danger"
                     >
                       Failed to load Movies.
@@ -183,9 +186,7 @@ function MovieList() {
 
                     <tr key={movie.movie_id}>
 
-                      <td className="ps-3 fw-semibold">
-                        {movie.movie_id}
-                      </td>
+                      
 
                       <td className="fw-semibold">
                         {movie.movie_name}
@@ -227,6 +228,34 @@ function MovieList() {
 
                       <td>
                         {movie.duration_minutes}
+                      </td>
+                      <td style={{ minWidth: '150px' }}>
+                            {movie.hall ? (
+                              <div className="d-flex flex-wrap gap-2">
+                                {movie.halls.map((hall, index) => (
+                                  <span
+                                    key={index}
+                                    // className="badge bg-info bg-opacity-10 text-info px-3 py-2"
+                                  >
+                                    {hall}
+                                  </span>
+                                ))}
+                              </div>
+                            ) : (
+                              <span className="text-secondary">
+                                No Halls
+                              </span>
+                            )}
+                          </td>
+                      <td>
+                        {movie.showing_start_date
+                            ? new Date(movie.showing_start_date).toLocaleDateString()
+                            : '-'}
+                      </td>
+                      <td>
+                        {movie.showing_end_date
+                            ? new Date(movie.showing_end_date).toLocaleDateString()
+                            : '-'}
                       </td>
 
                       {/* STATUS */}
