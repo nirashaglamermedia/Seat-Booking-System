@@ -92,6 +92,21 @@ function MoviePage() {
     );
   }
 
+  // Movie showing period
+  // Movie showing period
+    const movieStartDate = movie.showing_start_date?.slice(0, 10);
+    const movieEndDate = movie.showing_end_date?.slice(0, 10);
+
+    const minDate = movieStartDate && movieStartDate > today
+      ? movieStartDate
+      : today;
+
+    const maxAllowedDate = movieEndDate && movieEndDate < max
+      ? movieEndDate
+      : max;
+
+    const isValidShowingPeriod = minDate <= maxAllowedDate;
+
   const posterSrc = movie.poster_url?.trim()
     ? movie.poster_url
     : '/default-movie.jpg';
@@ -179,18 +194,32 @@ function MoviePage() {
             <i className="bi bi-calendar-event me-2 text-danger"></i>
             Select Date
           </div>
-
           <input
             type="date"
             className="form-control"
-            min={today}
-            max={max}
+            min={minDate}
+            max={maxAllowedDate}
             value={selectedDate}
+            disabled={!isValidShowingPeriod}
             onChange={(e) => {
-              setSelectedDate(e.target.value);
+              const date = e.target.value;
+
+              if (date < minDate || date > maxAllowedDate) {
+                setSelectedDate('');
+                setSelectedShowtime(null);
+                return;
+              }
+
+              setSelectedDate(date);
               setSelectedShowtime(null);
             }}
           />
+
+          {!isValidShowingPeriod && (
+            <p className="text-danger mt-2">
+              This movie is currently not available for booking.
+            </p>
+          )}
 
           <hr className="my-4" />
 
@@ -200,7 +229,12 @@ function MoviePage() {
           </div>
 
           <div className="d-flex gap-2 flex-wrap">
-            {movie.showtimes?.length > 0 ? (
+           {!selectedDate ? (
+              <p className="text-muted">
+                Please select a date to view available showtimes.
+              </p>
+            ) : movie.showtimes?.length > 0 ? (
+
               movie.showtimes.map((showtime) => (
                 <button
                   key={showtime.showtime_id}
@@ -225,22 +259,28 @@ function MoviePage() {
           </div>
 
           <button
-            className="mp-select mt-4 "
-            disabled={!selectedDate || !selectedShowtime}
-            onClick={() =>
-              navigate('/seat-selection', {
-                state: {
-                  movie_id: movie.movie_id,
-                  movie_name: movie.movie_name,
-                  showtime_id: selectedShowtime.showtime_id,
-                  show_date: selectedDate,
-                  start_time: selectedShowtime.start_time,
-                  hall_name: selectedShowtime.hall_name,
-                },
-              })
-            }
-          >
-            Select
+              className="mp-select mt-4"
+              disabled={
+                !isValidShowingPeriod ||
+                !selectedDate ||
+                !selectedShowtime ||
+                selectedDate < minDate ||
+                selectedDate > maxAllowedDate
+              }
+              onClick={() =>
+                navigate('/seat-selection', {
+                  state: {
+                    movie_id: movie.movie_id,
+                    movie_name: movie.movie_name,
+                    showtime_id: selectedShowtime.showtime_id,
+                    show_date: selectedDate,
+                    start_time: selectedShowtime.start_time,
+                    hall_name: selectedShowtime.hall_name,
+                  },
+                })
+              }
+            >
+              Select
           </button>
         </div>
       </div>

@@ -23,7 +23,10 @@ function MyBooking() {
     isLoading,
     isError,
     refetch,
-}  = useGetBookingByUserIdQuery(userId);
+}  = useGetBookingByUserIdQuery(userId,{
+  skip: !userId,
+  refetchOnMountOrArgChange: true,
+});
 
   const [markArrived, { isLoading: isArriving }] =
     useMarkArrivedMutation();
@@ -43,51 +46,37 @@ function MyBooking() {
   }
 
   useEffect(() => {
+    if (!userId) return;
 
     function handleBookingUpdate(data) {
+      if (Number(data.user_id) === Number(userId)) {
+        console.log('Booking updated:', data);
+        refetch();
+      }
+    }
 
-        if (Number(data.user_id) === Number(userId)) {
-
-            console.log('Booking updated:', data);
-
-            // Automatically reload customer bookings
-            refetch();
-        }
+    function handlePageVisible() {
+      if (document.visibilityState === 'visible') {
+        refetch();
+      }
     }
 
     socket.on('bookingUpdated', handleBookingUpdate);
 
+    document.addEventListener(
+      'visibilitychange',
+      handlePageVisible
+    );
+
     return () => {
-        socket.off('bookingUpdated', handleBookingUpdate);
+      socket.off('bookingUpdated', handleBookingUpdate);
+
+      document.removeEventListener(
+        'visibilitychange',
+        handlePageVisible
+      );
     };
-
-}, [userId, refetch]);
-  async function handleArrived(bookingId) {
-    try {
-      await markArrived({
-        booking_id: bookingId,
-        user_id: userId,
-      }).unwrap();
-
-      showMessage(
-        'Arrival Confirmed',
-        'Your arrival has been successfully confirmed!',
-        'success'
-      );
-
-    } catch (err) {
-      const message = err?.data?.message;
-
-      showMessage(
-        'Arrival Failed',
-        Array.isArray(message)
-          ? message.join(', ')
-          : message || 'Failed to confirm your arrival.',
-        'danger'
-      );
-    }
-  }
-
+  }, [userId, refetch]);
   
   function handleAddBooking() {
     navigate('/');
@@ -188,7 +177,6 @@ function MyBooking() {
                 <thead className="table-light">
 
                   <tr>
-                    <th className="py-3">Booking ID</th>
                     <th className="py-3">Booking Date</th>
                     <th className="py-3">Seats</th>
                     <th className="py-3">Movie Name</th>
@@ -273,9 +261,7 @@ function MyBooking() {
 
                       <tr key={booking.booking_id}>
 
-                        <td className="fw-semibold">
-                          {booking.booking_id}
-                        </td>
+                       
 
                         <td className="text-nowrap">
                           {new Date(

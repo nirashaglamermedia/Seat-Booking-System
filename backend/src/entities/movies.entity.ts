@@ -28,6 +28,13 @@ export class Movie {
   @Column({ default: 'Active' })
   status: string;
 
+  // New fields
+  @Column({ type: 'date', nullable: true })
+  showing_start_date: string;
+
+  @Column({ type: 'date', nullable: true })
+  showing_end_date: string;
+
   @OneToMany(() => Showtime, (showtime) => showtime.movie)
   showtimes: Showtime[];
 }

@@ -13,24 +13,22 @@ export class SeatsService {
   constructor(@InjectRepository(Seat)private seatRepository: Repository<Seat>,) {}
 
   
-  async findAllSeats(row_name?: string,) {
-    if (row_name) {
-      return this.seatRepository.find({
-        where: { row_name },
-        order: {
-          row_name: 'ASC',
-          seat_number: 'ASC',
-        },
-      });
-    }
-
+  async findAllSeats(row_name?: string) {
+  if (row_name) {
     return this.seatRepository.find({
+      where: { row_name },
       order: {
-        row_name: 'ASC',
-        seat_number: 'ASC',
+        seat_id: 'ASC',
       },
     });
   }
+
+  return this.seatRepository.find({
+    order: {
+      seat_id: 'ASC',
+    },
+  });
+}
 
   
   

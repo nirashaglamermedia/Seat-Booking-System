@@ -1,3 +1,4 @@
+
 import {
   Entity,
   PrimaryGeneratedColumn,
@@ -20,6 +21,10 @@ export class Showtime {
   @Column({ type: 'integer' })
   hall_id: number;
 
+  // New field: movie screening date
+  @Column({ type: 'date' })
+  show_date: string;
+
   @Column({ type: 'time' })
   start_time: string;
 
@@ -31,6 +36,6 @@ export class Showtime {
   movie: Movie;
 
   @ManyToOne(() => Hall)
-    @JoinColumn({ name: 'hall_id' })
-    hall: Hall;
+  @JoinColumn({ name: 'hall_id' })
+  hall: Hall;
 }
