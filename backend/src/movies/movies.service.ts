@@ -345,7 +345,7 @@ async findMovieByName(movieName: string) {
     const endDate =
       updateMovie.showing_end_date ?? movie.showing_end_date;
 
-    if (startDate && endDate && endDate < startDate) {
+    if (startDate && endDate && new Date(endDate) < new Date(startDate)) {
       throw new BadRequestException(
         'Showing end date must be after or equal to start date',
       );

@@ -46,8 +46,8 @@ export const hallApi = createApi({
     
     deactivateHall: builder.mutation({
       query: (hall_id) => ({
-        url: `/deactivate/${hall_id}`,
-        method: 'PATCH',
+        url: `/${hall_id}`,
+        method: 'DELETE',
       }),
       invalidatesTags: ['Halls'],
     }),

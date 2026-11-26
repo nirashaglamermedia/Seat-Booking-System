@@ -22,8 +22,10 @@ export class HallsController {
     }
 
     @Delete(':hall_id')
-    deleteHall(@Param('hall_id', ParseIntPipe) hall_id: number){
-       return this.hallService.removeHall(hall_id) 
+    removeHall(
+    @Param('hall_id', ParseIntPipe) hall_id: number,
+    ) {
+    return this.hallService.removeHall(hall_id);
     }
     
 }

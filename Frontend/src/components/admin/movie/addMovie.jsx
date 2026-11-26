@@ -124,6 +124,23 @@ function AddMovie() {
         }
     };
 
+    const calculateEndTime = (startTime, durationMinutes) => {
+        if (!startTime || !durationMinutes) {
+            return '';
+        }
+
+        const [hours, minutes] = startTime.split(':').map(Number);
+
+        const startMinutes = hours * 60 + minutes;
+
+        const endMinutes = startMinutes + Number(durationMinutes);
+
+        const endHours = Math.floor(endMinutes / 60) % 24;
+        const endMinute = endMinutes % 60;
+
+        return `${String(endHours).padStart(2, '0')}:${String(endMinute).padStart(2, '0')}`;
+    };
+
     return (
         <div className="container py-5">
 
@@ -332,18 +349,31 @@ function AddMovie() {
                                             </label>
 
                                             <input
-                                                type="time"
-                                                className="form-control"
-                                                value={showtime.start_time}
-                                                onChange={(e) =>
-                                                    handleShowtimeChange(
-                                                        index,
-                                                        'start_time',
-                                                        e.target.value
+                                            type="time"
+                                            className="form-control"
+                                            value={showtime.start_time || ''}
+                                            onChange={(e) => {
+                                                const startTime = e.target.value;
+
+                                                const endTime = calculateEndTime(
+                                                    startTime,
+                                                    durationMinutes
+                                                );
+
+                                                setShowtimes((previousShowtimes) =>
+                                                    previousShowtimes.map((item, i) =>
+                                                        i === index
+                                                            ? {
+                                                                ...item,
+                                                                start_time: startTime,
+                                                                end_time: endTime,
+                                                            }
+                                                            : item
                                                     )
-                                                }
-                                                required
-                                            />
+                                                );
+                                            }}
+                                            required
+                                        />
                                         </div>
 
                                         {/* End Time */}
@@ -353,18 +383,11 @@ function AddMovie() {
                                             </label>
 
                                             <input
-                                                type="time"
-                                                className="form-control"
-                                                value={showtime.end_time}
-                                                onChange={(e) =>
-                                                    handleShowtimeChange(
-                                                        index,
-                                                        'end_time',
-                                                        e.target.value
-                                                    )
-                                                }
-                                                required
-                                            />
+                                                    type="time"
+                                                    className="form-control"
+                                                    value={showtime.end_time}
+                                                    readOnly
+                                                />
                                         </div>
 
                                     </div>

@@ -16,6 +16,8 @@ function EditMovie() {
     const [halls, setHalls] = useState([]);
     const [durationMinutes, setDurationMinutes] = useState('');
     const [status, setStatus] = useState('');
+    const [showingStartDate, setShowingStartDate] = useState('');
+    const [showingEndDate, setShowingEndDate] = useState('');
   
     const [showPopup, setShowPopup] = useState(false);
     const [popupTitle, setPopupTitle] = useState('');
@@ -52,6 +54,18 @@ function EditMovie() {
       setHalls(movie.halls ?? []);
       setDurationMinutes(movie.duration_minutes ?? '');
       setStatus(movie.status ?? '');
+
+      setShowingStartDate(
+        movie.showing_start_date
+          ? String(movie.showing_start_date).slice(0, 10)
+          : ''
+      );
+
+      setShowingEndDate(
+        movie.showing_end_date
+          ? String(movie.showing_end_date).slice(0, 10)
+          : ''
+      );
     }
   }, [movie]);
   
@@ -137,44 +151,49 @@ function EditMovie() {
     }
     const isArrived = movie.arrival_status === 'Arrived';
     
-    const handleSubmit = async (e) => {
-      e.preventDefault();
-  
-      if (!['Active', 'Deactive'].includes(status)) {
+    const handleSubmit = async (e) => {e.preventDefault();
+
+      if (!showingStartDate || !showingEndDate) {
         showMessage(
-            'Invalid Status',
-            'Please select a valid movie status.',
-            'error'
+          'Invalid Date',
+          'Please select both showing dates.',
+          'error'
         );
         return;
-        }
-  
+      }
+
+      if (new Date(showingEndDate) < new Date(showingStartDate)) {
+        showMessage(
+          'Invalid Date',
+          'Showing End Date cannot be earlier than Start Date.',
+          'error'
+        );
+        return;
+      }
+
       showConfirmation(
         'Update Movie',
-        status === 'Deactive'
-            ? 'Are you sure you want to deactivate this movie?'
-            : 'Are you sure you want to activate this movie?',
+        'Are you sure you want to update this movie?',
         async () => {
           try {
             await updateMovie({
-                movie_id: Number(movie_id),
-                description: description,
-                status: status,
-                }).unwrap();
-  
+              movie_id: Number(movie_id),
+              description,
+              showing_start_date: showingStartDate,
+              showing_end_date: showingEndDate,
+            }).unwrap();
+
             showMessage(
               'Success',
-              status === 'Cancelled'
-                ? 'Movie cancelled successfully!'
-                : 'Movie status updated successfully!',
+              'Movie updated successfully!',
               'success'
             );
-  
+
           } catch (error) {
             console.error('Update error:', error);
-  
+
             const message = error?.data?.message;
-  
+
             showMessage(
               'Error',
               Array.isArray(message)
@@ -266,6 +285,36 @@ function EditMovie() {
                     required
                   />
                 </div>
+                {/* Showing Start Date */}
+                <div className="col-md-6">
+                  <label className="form-label fw-semibold">
+                    Showing Start Date
+                  </label>
+
+                  <input
+                    type="date"
+                    className="form-control"
+                    value={showingStartDate}
+                    onChange={(e) => setShowingStartDate(e.target.value)}
+                    readOnly
+                  />
+                </div>
+
+                {/* Showing End Date */}
+                <div className="col-md-6">
+                  <label className="form-label fw-semibold">
+                    Showing End Date
+                  </label>
+
+                  <input
+                    type="date"
+                    className="form-control"
+                    value={showingEndDate}
+                    min={showingStartDate}
+                    onChange={(e) => setShowingEndDate(e.target.value)}
+                    required
+                  />
+                </div>
                 
                 <div className="col-md-6">
                     <label className="form-label fw-semibold">
@@ -344,7 +393,7 @@ function EditMovie() {
              
               <div className="d-flex justify-content-end gap-2 mt-4">
   
-                <button
+               <button
                   type="button"
                   className="btn btn-outline-secondary"
                   onClick={() => navigate('/movie-list')}
@@ -354,7 +403,7 @@ function EditMovie() {
                   Back
                 </button>
   
-                <button
+               <button
                   type="submit"
                   className="btn btn-primary"
                   disabled={isUpdating}
@@ -371,7 +420,7 @@ function EditMovie() {
                   ) : (
                     <>
                       <i className="bi bi-check-circle me-1"></i>
-                      Update Booking
+                      Update Movie
                     </>
                   )}
                 </button>
@@ -450,25 +499,20 @@ function EditMovie() {
                 </>
               ) : (
                 <button
-                  type="button"
-                  className="btn btn-primary"
-                  onClick={() => {
-                    const shouldNavigate =
-                      popupTitle === 'Success' &&
-                      !confirmAction;
-  
-                    closePopup();
-  
-                    if (shouldNavigate) {
-                      
-                      if (popupMessage.includes('Booking')) {
-                        navigate('/movie-list');
-                      }
-                    }
-                  }}
-                >
-                  OK
-                </button>
+                type="button"
+                className="btn btn-primary"
+                onClick={() => {
+                  const shouldNavigate = popupTitle === 'Success';
+
+                  closePopup();
+
+                  if (shouldNavigate) {
+                    navigate('/movie-list');
+                  }
+                }}
+              >
+                OK
+              </button>
               )}
   
             </div>

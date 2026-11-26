@@ -34,21 +34,27 @@ function HallList() {
   };
 
   const handleConfirmDelete = async () => {
-    try {
-      await deactivateHall(selectedHallId).unwrap();
+  try {
+    await deactivateHall(selectedHallId).unwrap();
 
-      setPopupMessage('Hall deactivated successfully!');
-      setPopupType('success');
-      setSelectedHallId(null);
-    } catch (error) {
-      console.error('Deactivate Hall Error:', error);
+    setPopupMessage('Hall deactivated successfully!');
+    setPopupType('success');
+    setSelectedHallId(null);
 
-      setPopupMessage(
-        error?.data?.message || 'Failed to deactivate Hall.'
-      );
-      setPopupType('error');
-    }
-  };
+  } catch (error) {
+    console.error('Deactivate Hall Error:', error);
+
+    const message = error?.data?.message;
+
+    setPopupMessage(
+      Array.isArray(message)
+        ? message.join(', ')
+        : message || 'Failed to deactivate Hall.'
+    );
+
+    setPopupType('error');
+  }
+};
 
   return (
     <div className="container-fluid py-4 px-3 px-md-4">

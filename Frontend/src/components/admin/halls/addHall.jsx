@@ -59,7 +59,7 @@ function AddHall() {
       setSuccessMessage('Hall added successfully!');
 
       setTimeout(() => {
-        navigate('/hall-list');
+        navigate('/movie-hall');
       }, 1000);
 
     } catch (error) {
