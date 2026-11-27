@@ -97,18 +97,20 @@ function Booking() {
   const totalPrice = Number(
     localStorage.getItem('totalPrice') || 0
   );
-
-  const movieId = localStorage.getItem("movie_id");
-  const movieName = localStorage.getItem("movie_name");
+  
+  
   const showtimeId = localStorage.getItem("showtime_id");
   const visitDate = localStorage.getItem("visit_date");
   const startTime = localStorage.getItem("start_time");
-
+  const movieName = localStorage.getItem("movie_name") || "";
   const subtotal = Number(
     localStorage.getItem('subtotal') || 0
   );
 
   const totalDiscount = subtotal - totalPrice;
+
+  
+
 
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
@@ -207,6 +209,7 @@ function Booking() {
       const discount = Math.round(
         (totalPrice * percentage / 100) * 100
       ) / 100;
+      
 
       setCouponDiscount(discount);
       setAppliedCoupon(result.coupon_code);
@@ -447,6 +450,19 @@ function Booking() {
   const isActiveMember = Boolean(membership);
   const maxSeats = isActiveMember ? 10 : 5;
 
+
+const membershipDiscount = isActiveMember
+  ? Math.max(
+      0,
+      (subtotal * 0.05) -
+        ((totalDiscount - subtotal * 0.05) / 0.95) * 0.05
+    )
+  : 0;
+
+const seatDiscount = totalDiscount - membershipDiscount;
+
+ 
+
   return (
     <div className="bk">
       <style>{styles}</style>
@@ -596,6 +612,23 @@ function Booking() {
               No seats selected. Please select seats first.
             </div>
           )}
+          <button
+            type="button"
+            className="btn btn-outline-danger btn-sm"
+            onClick={() => navigate("/seat-selection", {
+              state: {
+                movie_id: localStorage.getItem("movie_id"),
+                movie_name: movieName,
+                showtime_id: showtimeId,
+                show_date: visitDate,
+                start_time: startTime,
+                editMode: true,
+              },
+            })}
+          >
+            <i className="bi bi-pencil-square me-2"></i>
+            Edit Seats
+          </button>
 
           <div className="bk-row mt-3 mb-0">
             <span>Total seats</span>
@@ -688,22 +721,28 @@ function Booking() {
             <span>Rs. {subtotal.toFixed(2)}</span>
           </div>
 
-          <div className="bk-row">
-            <span className="text-success">
-              Seat & Membership Discount
-            </span>
+          
+<div className="bk-row">
+  <span className="text-success">
+    Seat Discount
+  </span>
 
-            <span className="text-success">
-              - Rs. {totalDiscount.toFixed(2)}
-            </span>
-          </div>
+  <span className="text-success">
+    - Rs. {seatDiscount.toFixed(2)}
+  </span>
+</div>
 
-          {isActiveMember && (
-            <div className="text-success small mb-2">
-              <i className="bi bi-star-fill me-2"></i>
-              Cinema Club Member – 5% discount included
-            </div>
-          )}
+{isActiveMember && (
+  <div className="bk-row">
+    <span className="text-success">
+      Cinema Club Membership (5%)
+    </span>
+
+    <span className="text-success">
+      - Rs. {membershipDiscount.toFixed(2)}
+    </span>
+  </div>
+)}
 
           <div className="bk-total">
             <span className="fw-bold">Final Amount</span>

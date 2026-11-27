@@ -91,11 +91,7 @@ function MyBooking() {
   }
   const { data: memberships = [] } = useGetMembershipsQuery();
   
-  const membership = memberships.find(
-      (item) => Number(item.user_id) === Number(user.user_id)
-  );
-  
-  const isActiveMember = membership?.status === 'Active';
+ 
 
   return (
     <div className="container-fluid bg-light min-vh-100 py-4">

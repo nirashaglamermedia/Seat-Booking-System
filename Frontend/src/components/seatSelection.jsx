@@ -86,15 +86,6 @@ const styles = `
 `;
 
 function SeatSelection() {
-  const [seats, setSeats] = useState([]);
-  const [selectedSeat, setSelectedSeat] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-
-  const [showPopup, setShowPopup] = useState(false);
-  const [popupMessage, setPopupMessage] = useState("");
-  const [popupTitle, setPopupTitle] = useState("Notice");
-
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -104,7 +95,29 @@ function SeatSelection() {
     showtime_id,
     show_date,
     start_time,
+    editMode,
   } = location.state || {};
+
+  const [seats, setSeats] = useState([]);
+  const [selectedSeat, setSelectedSeat] = useState(() => {
+    if (!editMode) return [];
+
+    try {
+      const savedSeats = JSON.parse(
+        localStorage.getItem("selectedSeats") || "[]"
+      );
+
+      return Array.isArray(savedSeats) ? savedSeats : [];
+    } catch {
+      return [];
+    }
+  });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  const [showPopup, setShowPopup] = useState(false);
+  const [popupMessage, setPopupMessage] = useState("");
+  const [popupTitle, setPopupTitle] = useState("Notice");
 
   const isLoggedIn =
     !!localStorage.getItem("access_token") &&

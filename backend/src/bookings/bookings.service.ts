@@ -669,12 +669,10 @@ export class BookingsService {
                     appliedCoupon = coupon;
                 }
 
-              
-                const finalTotal = Math.max(
-                    0,
-                    Math.round((total - couponDiscount) * 100) / 100,
+              const finalTotal = Math.max(
+                  0,
+                  subtotal - seatDiscount - membershipDiscount - couponDiscount
                 );
-
                 
                 const bookingResult = await client.query(
                   `INSERT INTO bookings
